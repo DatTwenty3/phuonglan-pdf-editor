@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PHUONGLAN PDF EDITOR - Sắp xếp, xóa trang và gộp PDF ngay trên trình duyệt.">
+  <title>PHUONGLAN PDF EDITOR</title>
+  <link rel="stylesheet" href="styles.css?v=6">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#" aria-label="Trang chủ PHUONGLAN PDF EDITOR">
+      <img class="brand-logo" src="logo.png" alt="Logo PHUONGLAN PDF EDITOR">
+      <span>PHUONGLAN <b>PDF EDITOR</b></span>
+    </a>
+    <div class="privacy"><span class="status-dot"></span> Xử lý an toàn trên thiết bị</div>
+  </header>
+
+  <main>
+    <section class="hero" id="emptyState">
+      <p class="comic-pop">BỤP! PDF GỌN GÀNG NGAY!</p>
+      <div class="hero-logo-frame">
+        <img src="logo.png" alt="Logo PHUONGLAN PDF EDITOR">
+      </div>
+      <p class="eyebrow">CÔNG CỤ PDF TRỰC TUYẾN</p>
+      <h1>Sắp xếp và gộp PDF<br><span>nhanh chóng, riêng tư.</span></h1>
+      <p class="hero-copy">Đổi vị trí, xóa trang và kết hợp nhiều tài liệu PDF ngay trên trình duyệt. File của bạn không được tải lên máy chủ.</p>
+      <button class="primary-btn large" id="heroAddBtn"><span>＋</span> Chọn tệp PDF</button>
+      <p class="drop-hint">hoặc kéo và thả tệp vào đây</p>
+      <div class="feature-row">
+        <span>✓ Không cần đăng ký</span><span>✓ Không giới hạn trang</span><span>✓ Hoàn toàn miễn phí</span>
+      </div>
+    </section>
+
+    <section class="workspace hidden" id="workspace">
+      <div class="workspace-head">
+        <div>
+          <p class="eyebrow">TRÌNH SẮP XẾP TRANG</p>
+          <h1>Tổ chức tài liệu của bạn</h1>
+          <p id="summary">0 trang</p>
+        </div>
+        <button class="primary-btn" id="downloadBtn">Tải PDF đã gộp <span>↓</span></button>
+      </div>
+
+      <div class="toolbar">
+        <div class="toolbar-group">
+          <button class="tool-btn" id="addBtn">＋ <span>Thêm PDF</span></button>
+          <button class="tool-btn" id="selectAllBtn">☑ <span>Chọn tất cả</span></button>
+          <button class="tool-btn danger" id="deleteBtn" disabled>🗑 <span>Xóa đã chọn</span></button>
+        </div>
+        <div class="toolbar-group">
+          <button class="tool-btn" id="rotateLeftBtn" disabled title="Xoay trái">↶</button>
+          <button class="tool-btn" id="rotateRightBtn" disabled title="Xoay phải">↷</button>
+        </div>
+      </div>
+
+      <div class="dropzone" id="dropzone">
+        <div class="page-grid" id="pageGrid" aria-live="polite"></div>
+        <div class="inline-drop"><b>＋ Thêm tài liệu khác</b><span>Kéo thả PDF vào khu vực này</span></div>
+      </div>
+    </section>
+  </main>
+
+  <input id="fileInput" type="file" accept="application/pdf,.pdf" multiple hidden>
+  <div class="preview-modal hidden" id="previewModal" role="dialog" aria-modal="true" aria-labelledby="previewTitle">
+    <div class="preview-panel">
+      <div class="preview-head">
+        <div><b id="previewTitle">Xem trước trang</b><span id="previewFileName"></span></div>
+        <button id="closePreviewBtn" aria-label="Đóng xem trước" title="Đóng">×</button>
+      </div>
+      <div class="preview-stage" id="previewStage">
+        <div class="preview-spinner" id="previewSpinner"></div>
+        <canvas id="previewCanvas"></canvas>
+      </div>
+      <p class="preview-tip">Nhấn ra ngoài hoặc phím Esc để đóng</p>
+    </div>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+  <div class="loading hidden" id="loading"><div class="spinner"></div><p id="loadingText">Đang xử lý PDF...</p></div>
+
+  <footer><span>PHUONGLAN PDF EDITOR</span><span>PDF của bạn luôn ở trên thiết bị.</span></footer>
+  <script src="app.js?v=6" charset="UTF-8"></script>
+</body>
+</html>
