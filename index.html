@@ -4,18 +4,19 @@
   <meta charset="UTF-8">
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="PHUONGLAN PDF EDITOR - Sắp xếp, xóa trang và gộp PDF ngay trên trình duyệt.">
-  <title>PHUONGLAN PDF EDITOR</title>
-  <link rel="stylesheet" href="styles.css?v=6">
+  <meta name="description" content="BÉ LAN PDF EDITOR - Sắp xếp, xóa trang và gộp PDF ngay trên trình duyệt.">
+  <title>BÉ LAN PDF EDITOR</title>
+  <link rel="stylesheet" href="styles.css?v=12">
+  <link rel="stylesheet" href="layout-fixes.css?v=13">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="#" aria-label="Trang chủ PHUONGLAN PDF EDITOR">
-      <img class="brand-logo" src="logo.png" alt="Logo PHUONGLAN PDF EDITOR">
-      <span>PHUONGLAN <b>PDF EDITOR</b></span>
+    <a class="brand" href="#" aria-label="Trang chủ BÉ LAN PDF EDITOR">
+      <img class="brand-logo" src="logo.png" alt="Logo BÉ LAN PDF EDITOR">
+      <span>BÉ LAN <b>PDF EDITOR</b></span>
     </a>
     <div class="privacy"><span class="status-dot"></span> Xử lý an toàn trên thiết bị</div>
   </header>
@@ -24,7 +25,7 @@
     <section class="hero" id="emptyState">
       <p class="comic-pop">BỤP! PDF GỌN GÀNG NGAY!</p>
       <div class="hero-logo-frame">
-        <img src="logo.png" alt="Logo PHUONGLAN PDF EDITOR">
+        <img src="logo.png" alt="Logo BÉ LAN PDF EDITOR">
       </div>
       <p class="eyebrow">CÔNG CỤ PDF TRỰC TUYẾN</p>
       <h1>Sắp xếp và gộp PDF<br><span>nhanh chóng, riêng tư.</span></h1>
@@ -49,6 +50,10 @@
       <div class="toolbar">
         <div class="toolbar-group">
           <button class="tool-btn" id="addBtn">＋ <span>Thêm PDF</span></button>
+          <div class="view-switch" role="group" aria-label="Chế độ hiển thị PDF">
+            <button class="view-mode active" id="fileModeBtn" type="button" aria-pressed="true">▤ <span>Chế độ File</span></button>
+            <button class="view-mode" id="pageModeBtn" type="button" aria-pressed="false">▦ <span>Chế độ Trang</span></button>
+          </div>
           <button class="tool-btn" id="selectAllBtn">☑ <span>Chọn tất cả</span></button>
           <button class="tool-btn danger" id="deleteBtn" disabled>🗑 <span>Xóa đã chọn</span></button>
         </div>
@@ -59,7 +64,8 @@
       </div>
 
       <div class="dropzone" id="dropzone">
-        <div class="page-grid" id="pageGrid" aria-live="polite"></div>
+        <div class="compact-files" id="compactFiles" aria-live="polite"></div>
+        <div class="page-grid hidden" id="pageGrid" aria-live="polite"></div>
         <div class="inline-drop"><b>＋ Thêm tài liệu khác</b><span>Kéo thả PDF vào khu vực này</span></div>
       </div>
     </section>
@@ -82,7 +88,7 @@
   <div class="toast" id="toast" role="status"></div>
   <div class="loading hidden" id="loading"><div class="spinner"></div><p id="loadingText">Đang xử lý PDF...</p></div>
 
-  <footer><span>PHUONGLAN PDF EDITOR</span><span>PDF của bạn luôn ở trên thiết bị.</span></footer>
-  <script src="app.js?v=6" charset="UTF-8"></script>
+  <footer><span>BÉ LAN PDF EDITOR</span><span>PDF của bạn luôn ở trên thiết bị.</span></footer>
+  <script src="app.js?v=12" charset="UTF-8"></script>
 </body>
 </html>

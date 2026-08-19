@@ -1,4 +1,4 @@
-# PHUONGLAN PDF EDITOR
+# BÉ LAN PDF EDITOR
 
 Ứng dụng web tĩnh để sắp xếp, xoá, xoay và gộp các trang PDF trực tiếp trong trình duyệt.
 

@@ -1,0 +1,48 @@
+/* Căn giữa dấu cộng còn lại giữa các file và các trang. */
+.page-grid > .insert-point,
+.compact-files > .insert-point {
+  align-self: center;
+  margin-block: auto;
+  transform: translateY(-2px);
+}
+
+/* Vẽ dấu cộng bằng CSS để giao điểm nằm đúng tâm hình tròn. */
+.insert-point {
+  position: relative;
+  color: transparent;
+  font-size: 0;
+}
+
+.insert-point::before,
+.insert-point::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 15px;
+  height: 3px;
+  border-radius: 999px;
+  background: #fff;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.insert-point::after {
+  transform: translate(-50%, -50%) rotate(90deg);
+}
+
+.page-grid > .insert-point:hover,
+.compact-files > .insert-point:hover {
+  transform: translateY(-2px) scale(1.12);
+}
+
+@media (max-width: 650px) {
+  .compact-files > .insert-point {
+    margin-block: 4px;
+    transform: none;
+  }
+
+  .compact-files > .insert-point:hover {
+    transform: scale(1.12);
+  }
+}
