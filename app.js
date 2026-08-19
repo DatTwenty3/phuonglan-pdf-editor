@@ -1,6 +1,11 @@
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-const state = { pages: [], nextId: 1, compact: true, insertAt: null };
+const state = { pages: [], nextId: 1, nextFileColor: 0, compact: true, insertAt: null };
+const filePalette = [
+  ['#6b352b', '#d7ad9d'], ['#285f70', '#9fc5cf'], ['#6b5a20', '#d8c985'],
+  ['#694273', '#c8a8cf'], ['#387044', '#a8cfaf'], ['#9a4d22', '#e2b18f'],
+  ['#3e4f83', '#aeb9df'], ['#8a3b58', '#dfadc0']
+];
 const els = Object.fromEntries(['emptyState','workspace','fileInput','pageGrid','compactFiles','fileModeBtn','pageModeBtn','summary','deleteBtn','selectAllBtn','rotateLeftBtn','rotateRightBtn','dropzone','loading','loadingText','toast'].map(id => [id, document.getElementById(id)]));
 
 const showLoading = (text) => { els.loadingText.textContent = text; els.loading.classList.remove('hidden'); };
@@ -16,10 +21,11 @@ async function addFiles(fileList) {
   try {
     const addedPages = [];
     for (const file of files) {
+      const fileColor = state.nextFileColor++ % filePalette.length;
       const bytes = new Uint8Array(await file.arrayBuffer());
       const pdf = await pdfjsLib.getDocument({ data: bytes.slice() }).promise;
       for (let pageIndex = 0; pageIndex < pdf.numPages; pageIndex++) {
-        addedPages.push({ id: state.nextId++, fileName: file.name, sourceBytes: bytes, sourcePage: pageIndex, rotation: 0, selected: false, thumb: null });
+        addedPages.push({ id: state.nextId++, fileName: file.name, sourceBytes: bytes, sourcePage: pageIndex, fileColor, rotation: 0, selected: false, thumb: null });
       }
     }
     const insertionIndex = state.insertAt === null ? state.pages.length : Math.max(0, Math.min(state.insertAt, state.pages.length));
@@ -58,29 +64,37 @@ async function renderMissingThumbnails() {
 
 function render() {
   const fileGroups = [];
-  const groupMap = new Map();
   state.pages.forEach(page => {
-    if (!groupMap.has(page.sourceBytes)) {
+    const previousGroup = fileGroups[fileGroups.length - 1];
+    if (!previousGroup || previousGroup.sourceBytes !== page.sourceBytes) {
       const group = { sourceBytes: page.sourceBytes, fileName: page.fileName, pages: [] };
-      groupMap.set(page.sourceBytes, group);
       fileGroups.push(group);
     }
-    groupMap.get(page.sourceBytes).pages.push(page);
+    fileGroups[fileGroups.length - 1].pages.push(page);
+  });
+  const segmentTotals = new Map();
+  const segmentPositions = new Map();
+  fileGroups.forEach(group => segmentTotals.set(group.sourceBytes, (segmentTotals.get(group.sourceBytes) || 0) + 1));
+  fileGroups.forEach(group => {
+    const position = (segmentPositions.get(group.sourceBytes) || 0) + 1;
+    segmentPositions.set(group.sourceBytes, position);
+    group.segmentPosition = position;
+    group.segmentTotal = segmentTotals.get(group.sourceBytes);
   });
   const insertButton = index => `<button class="insert-point" type="button" data-insert-at="${index}" aria-label="Thêm PDF vào vị trí này" title="Thêm PDF vào đây">＋</button>`;
   els.compactFiles.innerHTML = fileGroups.map(group => `
-    <article class="compact-file-card" data-file-id="${group.pages[0].id}">
+    <article class="compact-file-card" data-segment-pages="${group.pages.map(page => page.id).join(',')}">
       <div class="compact-cover">${group.pages[0].thumb ? `<img src="${group.pages[0].thumb}" alt="Trang đầu của ${escapeHtml(group.fileName)}">` : 'PDF'}</div>
       <div class="compact-file-info">
         <b title="${escapeHtml(group.fileName)}">${escapeHtml(group.fileName)}</b>
-        <span>${group.pages.length} trang PDF</span>
+        <span>${group.pages.length} trang PDF${group.segmentTotal > 1 ? ` • Phần ${group.segmentPosition}/${group.segmentTotal}` : ''}</span>
         <div class="compact-actions">
-          <button class="file-delete" type="button" data-delete-file="${group.pages[0].id}" aria-label="Xóa tệp ${escapeHtml(group.fileName)}" title="Xóa toàn bộ tệp">× Xóa file</button>
+          <button class="file-delete" type="button" data-delete-segment="${group.pages.map(page => page.id).join(',')}" aria-label="Xóa ${group.segmentTotal > 1 ? `phần ${group.segmentPosition} của` : 'tệp'} ${escapeHtml(group.fileName)}" title="Xóa nhóm trang này">× ${group.segmentTotal > 1 ? 'Xóa phần' : 'Xóa file'}</button>
         </div>
       </div>
     </article>${insertButton(state.pages.indexOf(group.pages[group.pages.length - 1]) + 1)}`).join('');
   els.pageGrid.innerHTML = state.pages.map((page, index) => `
-    <article class="page-card ${page.selected ? 'selected' : ''}" data-id="${page.id}">
+    <article class="page-card file-colored ${page.selected ? 'selected' : ''}" data-id="${page.id}" style="--file-color:${filePalette[page.fileColor ?? 0][0]};--file-soft:${filePalette[page.fileColor ?? 0][1]}">
       <input class="page-check" type="checkbox" ${page.selected ? 'checked' : ''} aria-label="Chọn trang ${index + 1}">
       <button class="remove-one" aria-label="Xóa trang ${index + 1}" title="Xóa riêng trang ${index + 1}">×</button>
       <div class="page-preview">${page.thumb ? `<img src="${page.thumb}" alt="Xem trước trang ${index + 1}" style="max-width:100%;max-height:100%;transform:rotate(${page.rotation}deg)">` : 'Đang tải...'}</div>
@@ -93,7 +107,9 @@ function render() {
   els.pageModeBtn.classList.toggle('active', !state.compact);
   els.fileModeBtn.setAttribute('aria-pressed', String(state.compact));
   els.pageModeBtn.setAttribute('aria-pressed', String(!state.compact));
-  els.summary.textContent = state.compact ? `${state.pages.length} trang được gom trong ${fileGroups.length} tệp PDF` : `${state.pages.length} trang từ ${fileGroups.length} tệp • Kéo thả để thay đổi thứ tự`;
+  const uniqueFileCount = new Set(state.pages.map(page => page.sourceBytes)).size;
+  const multiMoveHint = count > 1 ? ` • Đã chọn ${count} trang — kéo một trang đã chọn để di chuyển cả nhóm` : '';
+  els.summary.textContent = state.compact ? `${state.pages.length} trang trong ${fileGroups.length} nhóm từ ${uniqueFileCount} tệp PDF` : `${state.pages.length} trang từ ${uniqueFileCount} tệp • Kéo thả để thay đổi thứ tự${multiMoveHint}`;
   els.deleteBtn.disabled = els.rotateLeftBtn.disabled = els.rotateRightBtn.disabled = count === 0;
   els.selectAllBtn.textContent = count === state.pages.length && count ? '☐ Bỏ chọn tất cả' : '☑ Chọn tất cả';
 }
@@ -118,10 +134,9 @@ els.pageModeBtn.onclick = () => { state.compact = false; render(); };
 els.compactFiles.addEventListener('click', event => {
   const insertButton = event.target.closest('[data-insert-at]');
   if (insertButton) { chooseInsertPosition(+insertButton.dataset.insertAt); return; }
-  const deleteButton = event.target.closest('[data-delete-file]');
+  const deleteButton = event.target.closest('[data-delete-segment]');
   if (deleteButton) {
-    const page = state.pages.find(item => item.id === +deleteButton.dataset.deleteFile);
-    if (page) removePages(state.pages.filter(item => item.sourceBytes === page.sourceBytes).map(item => item.id));
+    removePages(deleteButton.dataset.deleteSegment.split(',').map(Number));
     return;
   }
 });
@@ -131,7 +146,44 @@ function chooseInsertPosition(index) { state.insertAt = index; els.fileInput.cli
 document.querySelector('.inline-drop').onclick = () => { state.insertAt = null; els.fileInput.click(); };
 els.fileInput.onchange = event => { addFiles(event.target.files); event.target.value = ''; };
 
-new Sortable(els.pageGrid, { draggable: '.page-card', animation: 180, delay: 80, delayOnTouchOnly: true, onEnd: event => { const [moved] = state.pages.splice(event.oldDraggableIndex, 1); state.pages.splice(event.newDraggableIndex, 0, moved); render(); } });
+let multiPageDrag = null;
+new Sortable(els.pageGrid, {
+  draggable: '.page-card',
+  animation: 180,
+  delay: 80,
+  delayOnTouchOnly: true,
+  onStart: event => {
+    const draggedId = +event.item.dataset.id;
+    const draggedPage = state.pages.find(page => page.id === draggedId);
+    const selectedPages = state.pages.filter(page => page.selected);
+    if (draggedPage?.selected && selectedPages.length > 1) {
+      multiPageDrag = { draggedId, ids: selectedPages.map(page => page.id) };
+      event.item.dataset.dragCount = selectedPages.length;
+      els.pageGrid.querySelectorAll('.page-card.selected').forEach(card => card.classList.add('multi-dragging'));
+    } else {
+      multiPageDrag = null;
+    }
+  },
+  onEnd: event => {
+    if (!multiPageDrag) {
+      const [moved] = state.pages.splice(event.oldDraggableIndex, 1);
+      state.pages.splice(event.newDraggableIndex, 0, moved);
+      render();
+      return;
+    }
+    const selectedIds = new Set(multiPageDrag.ids);
+    const selectedPages = state.pages.filter(page => selectedIds.has(page.id));
+    const remainingPages = state.pages.filter(page => !selectedIds.has(page.id));
+    const domIds = [...els.pageGrid.querySelectorAll('.page-card')].map(card => +card.dataset.id);
+    const draggedPosition = domIds.indexOf(multiPageDrag.draggedId);
+    const precedingId = domIds.slice(0, draggedPosition).reverse().find(id => !selectedIds.has(id));
+    const insertionIndex = precedingId === undefined ? 0 : remainingPages.findIndex(page => page.id === precedingId) + 1;
+    remainingPages.splice(insertionIndex, 0, ...selectedPages);
+    state.pages = remainingPages;
+    multiPageDrag = null;
+    render();
+  }
+});
 
 new Sortable(els.compactFiles, {
   draggable: '.compact-file-card',
@@ -141,12 +193,11 @@ new Sortable(els.compactFiles, {
   filter: 'button',
   preventOnFilter: false,
   onEnd: () => {
-    const orderedFileIds = [...els.compactFiles.querySelectorAll('.compact-file-card')].map(card => +card.dataset.fileId);
-    const reordered = [];
-    orderedFileIds.forEach(id => {
-      const firstPage = state.pages.find(page => page.id === id);
-      if (firstPage) reordered.push(...state.pages.filter(page => page.sourceBytes === firstPage.sourceBytes));
-    });
+    const pagesById = new Map(state.pages.map(page => [page.id, page]));
+    const reordered = [...els.compactFiles.querySelectorAll('.compact-file-card')]
+      .flatMap(card => card.dataset.segmentPages.split(',').map(Number))
+      .map(id => pagesById.get(id))
+      .filter(Boolean);
     state.pages = reordered;
     render();
   }
