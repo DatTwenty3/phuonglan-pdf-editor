@@ -7,7 +7,7 @@
   <meta name="description" content="BÉ LAN PDF EDITOR - Sắp xếp, xóa trang và gộp PDF ngay trên trình duyệt.">
   <title>BÉ LAN PDF EDITOR</title>
   <link rel="stylesheet" href="styles.css?v=12">
-  <link rel="stylesheet" href="layout-fixes.css?v=22">
+  <link rel="stylesheet" href="layout-fixes.css?v=23">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
@@ -76,10 +76,10 @@
             <button class="view-mode active" id="fileModeBtn" type="button" aria-pressed="true">▤ <span>Chế độ File</span></button>
             <button class="view-mode" id="pageModeBtn" type="button" aria-pressed="false">▦ <span>Chế độ Trang</span></button>
           </div>
-          <button class="tool-btn" id="selectAllBtn">☑ <span>Chọn tất cả</span></button>
-          <button class="tool-btn danger" id="deleteBtn" disabled>🗑 <span>Xóa đã chọn</span></button>
-          <button class="tool-btn" id="rotateLeftBtn" disabled title="Xoay trái">↶</button>
-          <button class="tool-btn" id="rotateRightBtn" disabled title="Xoay phải">↷</button>
+          <button class="tool-btn page-only-tool" id="selectAllBtn">☑ <span>Chọn tất cả</span></button>
+          <button class="tool-btn danger page-only-tool" id="deleteBtn" disabled>🗑 <span>Xóa đã chọn</span></button>
+          <button class="tool-btn page-only-tool" id="rotateLeftBtn" disabled title="Xoay trái">↶</button>
+          <button class="tool-btn page-only-tool" id="rotateRightBtn" disabled title="Xoay phải">↷</button>
           </div>
         </div>
       </div>
@@ -117,6 +117,6 @@
   <div class="loading hidden" id="loading"><div class="paper-loader" aria-hidden="true"><i></i><i></i><i></i></div><p id="loadingText">Đang xếp giấy thật ngay ngắn...</p><div class="progress-track" role="progressbar" aria-label="Tiến trình xử lý" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="progressBar"></span></div><b class="progress-value" id="progressValue">0%</b></div>
 
   <footer><span>BÉ LAN PDF EDITOR</span><span>Được xếp giấy cẩn thận bởi Bé Lan ✦</span><span>PDF của bạn luôn ở trên thiết bị.</span></footer>
-  <script src="app.js?v=18" charset="UTF-8"></script>
+  <script src="app.js?v=19" charset="UTF-8"></script>
 </body>
 </html>

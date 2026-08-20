@@ -147,6 +147,7 @@ function render() {
   els.workspaceEmpty.classList.toggle('hidden', state.pages.length > 0);
   els.compactFiles.classList.toggle('hidden', !state.compact);
   els.pageGrid.classList.toggle('hidden', state.compact);
+  els.workspace.classList.toggle('file-view', state.compact);
   els.fileModeBtn.classList.toggle('active', state.compact);
   els.pageModeBtn.classList.toggle('active', !state.compact);
   els.fileModeBtn.setAttribute('aria-pressed', String(state.compact));

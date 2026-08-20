@@ -110,6 +110,9 @@ html,body,button,input,select,textarea{font-family:"Segoe UI",Arial,sans-serif!i
 #closePreviewBtn:after{transform:translate(-50%,-50%) rotate(-45deg)}
 #closePreviewBtn:hover:before,#closePreviewBtn:hover:after{background:#fff}
 
+/* Công cụ chọn, xóa trang và xoay chỉ xuất hiện trong Chế độ Trang. */
+.workspace.file-view .page-only-tool{display:none!important}
+
 /* Màu nhận diện riêng cho trang của từng file PDF. */
 .page-card.file-colored {
   border-color: var(--file-color);
