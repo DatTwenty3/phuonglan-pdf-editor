@@ -7,7 +7,7 @@
   <meta name="description" content="BÉ LAN PDF EDITOR - Sắp xếp, xóa trang và gộp PDF ngay trên trình duyệt.">
   <title>BÉ LAN PDF EDITOR</title>
   <link rel="stylesheet" href="styles.css?v=12">
-  <link rel="stylesheet" href="layout-fixes.css?v=18">
+  <link rel="stylesheet" href="layout-fixes.css?v=22">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
@@ -34,6 +34,7 @@
       <div class="hero-logo-frame">
         <img src="logo.png" alt="Logo BÉ LAN PDF EDITOR">
         <span class="mascot-badge" aria-hidden="true">PDF</span>
+        <span class="mascot-speech">Thả PDF vào đây nha!</span>
       </div>
       <p class="eyebrow">CÔNG CỤ PDF TRỰC TUYẾN</p>
       <h1>Sắp xếp PDF<br><span>nhẹ như lật trang!</span></h1>
@@ -54,6 +55,7 @@
         </div>
         <div class="export-actions finish-tray" aria-label="Hoàn tất và tải xuống">
           <span class="tray-label">HOÀN TẤT ✦</span>
+          <div class="finish-mascot" aria-hidden="true"><img src="logo.png" alt=""><span id="mascotMessage">Sẵn sàng xếp giấy!</span></div>
           <button class="primary-btn word-btn" id="downloadWordBtn" type="button">Xuất sang Word <span>↓</span></button>
           <button class="primary-btn" id="downloadBtn" type="button">Tải PDF đã gộp <span>↓</span></button>
           <span class="export-note">Xuất chữ thành nội dung có thể chỉnh sửa; PDF scan cần OCR.</span>
@@ -83,6 +85,12 @@
       </div>
 
       <div class="dropzone" id="dropzone">
+        <div class="desk-stickers" aria-hidden="true"><i class="tape"></i><i class="paperclip"></i><i class="scribble"></i><i class="star">✦</i></div>
+        <div class="workspace-empty hidden" id="workspaceEmpty">
+          <div class="empty-paper-stack" aria-hidden="true"><i></i><i></i><i></i></div>
+          <b>Bàn làm việc đang trống</b>
+          <span>Thêm một tệp PDF để bắt đầu nhé!</span>
+        </div>
         <div class="compact-files" id="compactFiles" aria-live="polite"></div>
         <div class="page-grid hidden" id="pageGrid" aria-live="polite"></div>
         <div class="inline-drop"><span class="drop-paper" aria-hidden="true">PDF</span><b>＋ Bàn làm việc còn chỗ nè!</b><span>Thả PDF vào đây hoặc bấm để thêm tài liệu khác</span></div>
@@ -104,10 +112,11 @@
       <p class="preview-tip">Nhấn ra ngoài hoặc phím Esc để đóng</p>
     </div>
   </div>
-  <div class="toast" id="toast" role="status"></div>
-  <div class="loading hidden" id="loading"><div class="paper-loader" aria-hidden="true"><i></i><i></i><i></i></div><p id="loadingText">Đang xếp giấy thật ngay ngắn...</p></div>
+  <div class="confetti" id="confetti" aria-hidden="true"></div>
+  <div class="toast" id="toast" role="status"><span class="toast-icon" aria-hidden="true"></span><span class="toast-message"></span></div>
+  <div class="loading hidden" id="loading"><div class="paper-loader" aria-hidden="true"><i></i><i></i><i></i></div><p id="loadingText">Đang xếp giấy thật ngay ngắn...</p><div class="progress-track" role="progressbar" aria-label="Tiến trình xử lý" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="progressBar"></span></div><b class="progress-value" id="progressValue">0%</b></div>
 
-  <footer><span>BÉ LAN PDF EDITOR</span><span>PDF của bạn luôn ở trên thiết bị.</span></footer>
-  <script src="app.js?v=16" charset="UTF-8"></script>
+  <footer><span>BÉ LAN PDF EDITOR</span><span>Được xếp giấy cẩn thận bởi Bé Lan ✦</span><span>PDF của bạn luôn ở trên thiết bị.</span></footer>
+  <script src="app.js?v=18" charset="UTF-8"></script>
 </body>
 </html>

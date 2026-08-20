@@ -6,11 +6,41 @@ const filePalette = [
   ['#694273', '#c8a8cf'], ['#387044', '#a8cfaf'], ['#9a4d22', '#e2b18f'],
   ['#3e4f83', '#aeb9df'], ['#8a3b58', '#dfadc0']
 ];
-const els = Object.fromEntries(['emptyState','workspace','fileInput','pageGrid','compactFiles','fileModeBtn','pageModeBtn','summary','deleteBtn','selectAllBtn','rotateLeftBtn','rotateRightBtn','dropzone','loading','loadingText','toast'].map(id => [id, document.getElementById(id)]));
+const els = Object.fromEntries(['emptyState','workspace','workspaceEmpty','fileInput','pageGrid','compactFiles','fileModeBtn','pageModeBtn','summary','deleteBtn','selectAllBtn','rotateLeftBtn','rotateRightBtn','dropzone','loading','loadingText','progressBar','progressValue','toast','confetti','mascotMessage'].map(id => [id, document.getElementById(id)]));
 
-const showLoading = (text) => { els.loadingText.textContent = text; els.loading.classList.remove('hidden'); };
-const hideLoading = () => els.loading.classList.add('hidden');
-const toast = (text) => { els.toast.textContent = text; els.toast.classList.add('show'); setTimeout(() => els.toast.classList.remove('show'), 2600); };
+const setProgress = value => {
+  const percent = Math.max(0, Math.min(100, Math.round(value)));
+  els.progressBar.style.width = `${percent}%`;
+  els.progressValue.textContent = `${percent}%`;
+  els.progressBar.parentElement.setAttribute('aria-valuenow', String(percent));
+};
+let loadingHideTimer;
+const showLoading = (text) => { clearTimeout(loadingHideTimer); els.loadingText.textContent = text; setProgress(0); els.loading.classList.remove('hidden'); toast(text, 'processing'); };
+const hideLoading = () => {
+  clearTimeout(loadingHideTimer);
+  const completed = els.progressBar.parentElement.getAttribute('aria-valuenow') === '100';
+  if (completed) loadingHideTimer = setTimeout(() => els.loading.classList.add('hidden'), 320);
+  else els.loading.classList.add('hidden');
+};
+let toastTimer;
+const burstConfetti = () => {
+  els.confetti.innerHTML = Array.from({ length: 14 }, (_, index) => `<i style="--i:${index};--x:${(index % 7 - 3) * 18}px"></i>`).join('');
+  els.confetti.classList.remove('burst');
+  requestAnimationFrame(() => els.confetti.classList.add('burst'));
+};
+const toast = (text, requestedType) => {
+  const type = requestedType || (/không|lỗi|cần OCR|vui lòng/i.test(text) ? 'warning' : /đang/i.test(text) ? 'processing' : 'success');
+  els.toast.className = `toast ${type}`;
+  els.toast.querySelector('.toast-message').textContent = text;
+  els.toast.querySelector('.toast-icon').textContent = type === 'success' ? '✓' : type === 'warning' ? '!' : '▤';
+  requestAnimationFrame(() => els.toast.classList.add('show'));
+  if (type === 'success') {
+    burstConfetti();
+    if (els.mascotMessage) { els.mascotMessage.textContent = 'Xong rồi nè!'; els.mascotMessage.parentElement.classList.add('celebrate'); }
+  }
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { els.toast.classList.remove('show'); els.mascotMessage?.parentElement.classList.remove('celebrate'); }, 2600);
+};
 const selected = () => state.pages.filter(page => page.selected);
 
 async function addFiles(fileList) {
@@ -20,13 +50,17 @@ async function addFiles(fileList) {
   showLoading(`Đang đọc ${files.length} tệp PDF...`);
   try {
     const addedPages = [];
-    for (const file of files) {
+    setProgress(3);
+    for (let fileIndex = 0; fileIndex < files.length; fileIndex++) {
+      const file = files[fileIndex];
+      els.loadingText.textContent = `Đang đọc tệp ${fileIndex + 1}/${files.length}: ${file.name}`;
       const fileColor = state.nextFileColor++ % filePalette.length;
       const bytes = new Uint8Array(await file.arrayBuffer());
       const pdf = await pdfjsLib.getDocument({ data: bytes.slice() }).promise;
       for (let pageIndex = 0; pageIndex < pdf.numPages; pageIndex++) {
         addedPages.push({ id: state.nextId++, fileName: file.name, sourceBytes: bytes, sourcePage: pageIndex, fileColor, rotation: 0, selected: false, thumb: null });
       }
+      setProgress(5 + ((fileIndex + 1) / files.length) * 20);
     }
     const insertionIndex = state.insertAt === null ? state.pages.length : Math.max(0, Math.min(state.insertAt, state.pages.length));
     state.pages.splice(insertionIndex, 0, ...addedPages);
@@ -34,8 +68,12 @@ async function addFiles(fileList) {
     els.workspace.classList.remove('hidden');
     if (!insertionRequested) state.compact = true;
     render();
-    await renderMissingThumbnails();
+    await renderMissingThumbnails((completed, total) => {
+      els.loadingText.textContent = `Đang tạo ảnh xem trước ${completed}/${total} trang...`;
+      setProgress(25 + (completed / Math.max(1, total)) * 73);
+    });
     render();
+    setProgress(100);
     toast(`Đã thêm ${files.length} tệp PDF.`);
   } catch (error) {
     console.error(error);
@@ -43,9 +81,12 @@ async function addFiles(fileList) {
   } finally { state.insertAt = null; hideLoading(); }
 }
 
-async function renderMissingThumbnails() {
+async function renderMissingThumbnails(onProgress) {
   const grouped = new Map();
   state.pages.filter(p => !p.thumb).forEach(p => { if (!grouped.has(p.sourceBytes)) grouped.set(p.sourceBytes, []); grouped.get(p.sourceBytes).push(p); });
+  const total = [...grouped.values()].reduce((sum, pages) => sum + pages.length, 0);
+  let completed = 0;
+  if (onProgress) onProgress(completed, total);
   for (const [bytes, pages] of grouped) {
     const pdf = await pdfjsLib.getDocument({ data: bytes.slice() }).promise;
     for (const item of pages) {
@@ -58,6 +99,8 @@ async function renderMissingThumbnails() {
       item.thumb = canvas.toDataURL('image/jpeg', .82);
       const target = document.querySelector(`[data-id="${item.id}"] .page-preview`);
       if (target) target.innerHTML = `<img src="${item.thumb}" alt="Xem trước trang" style="max-width:100%;max-height:100%;transform:rotate(${item.rotation}deg)">`;
+      completed++;
+      if (onProgress) onProgress(completed, total);
     }
   }
 }
@@ -101,6 +144,7 @@ function render() {
       <div class="page-meta"><div class="page-number">Trang ${index + 1}</div><div class="file-name" title="${escapeHtml(page.fileName)}">${escapeHtml(page.fileName)}</div></div>
     </article>${insertButton(index + 1)}`).join('');
   const count = selected().length;
+  els.workspaceEmpty.classList.toggle('hidden', state.pages.length > 0);
   els.compactFiles.classList.toggle('hidden', !state.compact);
   els.pageGrid.classList.toggle('hidden', state.compact);
   els.fileModeBtn.classList.toggle('active', state.compact);
@@ -121,7 +165,7 @@ function exportFileName(extension) {
   const sourceCount = new Set(state.pages.map(page => page.sourceBytes)).size;
   return `${baseName}${sourceCount > 1 ? '-da-gop' : ''}.${extension}`;
 }
-function removePages(ids) { state.pages = state.pages.filter(page => !ids.includes(page.id)); if (!state.pages.length) { els.workspace.classList.add('hidden'); els.emptyState.classList.remove('hidden'); } render(); }
+function removePages(ids) { state.pages = state.pages.filter(page => !ids.includes(page.id)); render(); }
 function rotateSelected(amount) { selected().forEach(page => page.rotation = (page.rotation + amount + 360) % 360); render(); }
 
 els.pageGrid.addEventListener('change', event => { if (!event.target.matches('.page-check')) return; const page = state.pages.find(p => p.id === +event.target.closest('.page-card').dataset.id); page.selected = event.target.checked; render(); });
@@ -159,6 +203,7 @@ new Sortable(els.pageGrid, {
   delay: 80,
   delayOnTouchOnly: true,
   onStart: event => {
+    event.item.classList.add('is-lifted');
     const draggedId = +event.item.dataset.id;
     const draggedPage = state.pages.find(page => page.id === draggedId);
     const selectedPages = state.pages.filter(page => page.selected);
@@ -171,6 +216,7 @@ new Sortable(els.pageGrid, {
     }
   },
   onEnd: event => {
+    event.item.classList.remove('is-lifted');
     if (!multiPageDrag) {
       const [moved] = state.pages.splice(event.oldDraggableIndex, 1);
       state.pages.splice(event.newDraggableIndex, 0, moved);
@@ -263,14 +309,18 @@ document.getElementById('downloadBtn').onclick = async () => {
     for (let i = 0; i < state.pages.length; i++) {
       const item = state.pages[i];
       els.loadingText.textContent = `Đang ghép trang ${i + 1}/${state.pages.length}...`;
+      setProgress(((i + 1) / state.pages.length) * 90);
       if (!cache.has(item.sourceBytes)) cache.set(item.sourceBytes, await PDFLib.PDFDocument.load(item.sourceBytes));
       const [page] = await output.copyPages(cache.get(item.sourceBytes), [item.sourcePage]);
       if (item.rotation) page.setRotation(PDFLib.degrees((page.getRotation().angle + item.rotation) % 360));
       output.addPage(page);
     }
+    els.loadingText.textContent = 'Đang đóng gói tệp PDF...';
+    setProgress(94);
     const blob = new Blob([await output.save()], { type: 'application/pdf' });
     const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = exportFileName('pdf'); link.click();
     setTimeout(() => URL.revokeObjectURL(link.href), 2000);
+    setProgress(100);
     toast('PDF đã được tạo thành công.');
   } catch (error) { console.error(error); toast('Có lỗi khi tạo PDF. Vui lòng thử lại.'); } finally { hideLoading(); }
 };
@@ -369,6 +419,7 @@ document.getElementById('downloadWordBtn').onclick = async () => {
     for (let i = 0; i < state.pages.length; i++) {
       const item = state.pages[i];
       els.loadingText.textContent = `Đang chuyển trang ${i + 1}/${state.pages.length} sang Word...`;
+      setProgress(((i + 1) / state.pages.length) * 90);
       if (!pdfCache.has(item.sourceBytes)) {
         pdfCache.set(item.sourceBytes, await pdfjsLib.getDocument({ data: item.sourceBytes.slice() }).promise);
       }
@@ -426,8 +477,11 @@ document.getElementById('downloadWordBtn').onclick = async () => {
       });
     }
     if (!extractedCharacters) throw new Error('PDF_SCAN_ONLY');
+    els.loadingText.textContent = 'Đang đóng gói tài liệu Word...';
+    setProgress(94);
     const blob = await Packer.toBlob(new Document({ sections }));
     downloadBlob(blob, exportFileName('docx'));
+    setProgress(100);
     toast(pagesWithoutText ? `Đã xuất Word; ${pagesWithoutText} trang không có văn bản để chỉnh sửa.` : 'Đã xuất Word dạng văn bản có thể chỉnh sửa.');
   } catch (error) {
     console.error(error);
