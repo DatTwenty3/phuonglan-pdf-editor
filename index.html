@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="layout-fixes.css?v=16">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 </head>
 <body>
@@ -44,7 +45,11 @@
           <h1>Tổ chức tài liệu của bạn</h1>
           <p id="summary">0 trang</p>
         </div>
-        <button class="primary-btn" id="downloadBtn">Tải PDF đã gộp <span>↓</span></button>
+        <div class="export-actions">
+          <button class="primary-btn word-btn" id="downloadWordBtn" type="button">Xuất sang Word <span>↓</span></button>
+          <button class="primary-btn" id="downloadBtn" type="button">Tải PDF đã gộp <span>↓</span></button>
+          <span class="export-note">Xuất chữ thành nội dung có thể chỉnh sửa; PDF scan cần OCR.</span>
+        </div>
       </div>
 
       <div class="toolbar">

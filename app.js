@@ -115,6 +115,12 @@ function render() {
 }
 
 function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
+function exportFileName(extension) {
+  const firstName = state.pages[0]?.fileName || 'tai-lieu.pdf';
+  const baseName = firstName.replace(/\.pdf$/i, '').replace(/[<>:"/\\|?*\u0000-\u001F]/g, '-').replace(/[. ]+$/g, '').trim() || 'tai-lieu';
+  const sourceCount = new Set(state.pages.map(page => page.sourceBytes)).size;
+  return `${baseName}${sourceCount > 1 ? '-da-gop' : ''}.${extension}`;
+}
 function removePages(ids) { state.pages = state.pages.filter(page => !ids.includes(page.id)); if (!state.pages.length) { els.workspace.classList.add('hidden'); els.emptyState.classList.remove('hidden'); } render(); }
 function rotateSelected(amount) { selected().forEach(page => page.rotation = (page.rotation + amount + 360) % 360); render(); }
 
@@ -263,8 +269,168 @@ document.getElementById('downloadBtn').onclick = async () => {
       output.addPage(page);
     }
     const blob = new Blob([await output.save()], { type: 'application/pdf' });
-    const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'BE-LAN-PDF-EDITOR.pdf'; link.click();
+    const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = exportFileName('pdf'); link.click();
     setTimeout(() => URL.revokeObjectURL(link.href), 2000);
     toast('PDF đã được tạo thành công.');
   } catch (error) { console.error(error); toast('Có lỗi khi tạo PDF. Vui lòng thử lại.'); } finally { hideLoading(); }
+};
+
+function downloadBlob(blob, fileName) {
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = fileName;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(link.href), 2000);
+}
+
+function normalizePdfFontName(rawName) {
+  if (!rawName) return '';
+  let name = String(rawName).split(',')[0].replace(/["']/g, '').trim();
+  name = name.replace(/^[A-Z]{6}\+/, '');
+  const aliases = [
+    [/^Arial(?:-|_)?(?:Bold|Italic|BoldItalic)?MT$/i, 'Arial'],
+    [/^ArialMT$/i, 'Arial'],
+    [/^TimesNewRomanPS(?:-|_)?(?:Bold|Italic|BoldItalic)?MT$/i, 'Times New Roman'],
+    [/^TimesNewRomanPSMT$/i, 'Times New Roman'],
+    [/^CourierNewPS(?:-|_)?(?:Bold|Italic|BoldItalic)?MT$/i, 'Courier New'],
+    [/^Calibri(?:-|_)?(?:Bold|Italic|BoldItalic)?$/i, 'Calibri'],
+    [/^Helvetica(?:-|_)?(?:Bold|Oblique|BoldOblique)?$/i, 'Arial'],
+    [/^Times(?:-|_)?(?:Bold|Italic|BoldItalic|Roman)?$/i, 'Times New Roman'],
+    [/^Courier(?:-|_)?(?:Bold|Oblique|BoldOblique)?$/i, 'Courier New']
+  ];
+  for (const [pattern, replacement] of aliases) if (pattern.test(name)) return replacement;
+  return name.replace(/(?:PS)?(?:-|_)?(?:BoldItalic|BoldOblique|Bold|Italic|Oblique|Regular|Roman|MT)$/i, '').replace(/[-_]+/g, ' ').trim() || name;
+}
+
+function pdfFontMetadata(pdfPage, textContent) {
+  const metadata = new Map();
+  const fontIds = new Set(textContent.items.map(item => item.fontName).filter(Boolean));
+  fontIds.forEach(fontId => {
+    const style = textContent.styles[fontId] || {};
+    let fontObject;
+    try { fontObject = pdfPage.commonObjs.get(fontId); } catch (_) { fontObject = null; }
+    const candidates = [
+      fontObject?.name,
+      fontObject?.systemFontInfo?.css,
+      fontObject?.systemFontInfo?.loadedName,
+      fontObject?.fallbackName,
+      style.fontFamily
+    ];
+    const specificName = candidates.map(normalizePdfFontName).find(name => name && !/^(sans-serif|serif|monospace)$/i.test(name));
+    const genericName = normalizePdfFontName(style.fontFamily);
+    metadata.set(fontId, {
+      family: specificName || (/^serif$/i.test(genericName) ? 'Times New Roman' : /^monospace$/i.test(genericName) ? 'Courier New' : 'Arial'),
+      descriptor: `${fontId} ${candidates.filter(Boolean).join(' ')}`
+    });
+  });
+  return metadata;
+}
+
+function textLinesFromPdf(textContent, viewport, fontMetadata) {
+  const textItems = textContent.items.filter(item => item.str?.trim()).map(item => {
+    const matrix = pdfjsLib.Util.transform(viewport.transform, item.transform);
+    const fontSize = Math.max(1, Math.hypot(matrix[2], matrix[3]));
+    const font = fontMetadata.get(item.fontName) || { family: 'Arial', descriptor: item.fontName };
+    return {
+      text: item.str,
+      x: matrix[4],
+      y: matrix[5] - fontSize,
+      width: Math.max(0, item.width || 0),
+      fontSize,
+      fontFamily: font.family,
+      bold: /bold|black|heavy|demi|semibold/i.test(font.descriptor),
+      italics: /italic|oblique/i.test(font.descriptor)
+    };
+  }).sort((a, b) => a.y - b.y || a.x - b.x);
+
+  const lines = [];
+  textItems.forEach(textItem => {
+    const line = lines.find(candidate => Math.abs(candidate.y - textItem.y) <= Math.max(2, textItem.fontSize * .35));
+    if (line) {
+      line.items.push(textItem);
+      line.y = Math.min(line.y, textItem.y);
+    } else {
+      lines.push({ y: textItem.y, items: [textItem] });
+    }
+  });
+  return lines.sort((a, b) => a.y - b.y).map(line => ({ ...line, items: line.items.sort((a, b) => a.x - b.x) }));
+}
+
+document.getElementById('downloadWordBtn').onclick = async () => {
+  if (!state.pages.length) return;
+  if (!window.docx) return toast('Không thể tải bộ tạo Word. Hãy kiểm tra kết nối mạng và thử lại.');
+  showLoading('Đang chuẩn bị tài liệu Word...');
+  try {
+    const { Document, Packer, Paragraph, TextRun, PageOrientation } = window.docx;
+    const pdfCache = new Map();
+    const sections = [];
+    let extractedCharacters = 0;
+    let pagesWithoutText = 0;
+    for (let i = 0; i < state.pages.length; i++) {
+      const item = state.pages[i];
+      els.loadingText.textContent = `Đang chuyển trang ${i + 1}/${state.pages.length} sang Word...`;
+      if (!pdfCache.has(item.sourceBytes)) {
+        pdfCache.set(item.sourceBytes, await pdfjsLib.getDocument({ data: item.sourceBytes.slice() }).promise);
+      }
+      const pdfPage = await pdfCache.get(item.sourceBytes).getPage(item.sourcePage + 1);
+      const rotation = ((pdfPage.rotate || 0) + item.rotation) % 360;
+      const pageViewport = pdfPage.getViewport({ scale: 1, rotation });
+      const textContent = await pdfPage.getTextContent({ includeMarkedContent: false, disableNormalization: false });
+      const fontMetadata = pdfFontMetadata(pdfPage, textContent);
+      const lines = textLinesFromPdf(textContent, pageViewport, fontMetadata);
+      const pageCharacters = lines.reduce((sum, line) => sum + line.items.reduce((lineSum, textItem) => lineSum + textItem.text.length, 0), 0);
+      extractedCharacters += pageCharacters;
+      if (!pageCharacters) pagesWithoutText++;
+      const landscape = pageViewport.width > pageViewport.height;
+      let previousBottom = 0;
+      const children = lines.map(line => {
+        const fontHeight = Math.max(...line.items.map(textItem => textItem.fontSize));
+        const left = Math.max(0, Math.min(...line.items.map(textItem => textItem.x)));
+        const before = Math.max(0, line.y - previousBottom);
+        previousBottom = Math.max(previousBottom, line.y + fontHeight);
+        let previousRight = left;
+        const runs = [];
+        line.items.forEach(textItem => {
+          const gap = Math.max(0, textItem.x - previousRight);
+          const spaces = Math.min(80, Math.max(0, Math.round(gap / Math.max(2, textItem.fontSize * .28))));
+          if (spaces) runs.push(new TextRun({ text: ' '.repeat(spaces), size: Math.round(textItem.fontSize * 2) }));
+          runs.push(new TextRun({
+            text: textItem.text,
+            font: textItem.fontFamily,
+            size: Math.round(textItem.fontSize * 2),
+            bold: textItem.bold,
+            italics: textItem.italics
+          }));
+          previousRight = textItem.x + textItem.width;
+        });
+        return new Paragraph({
+          indent: { left: Math.round(left * 20) },
+          spacing: { before: Math.round(before * 20), after: 0, line: Math.round(fontHeight * 20), lineRule: 'exact' },
+          children: runs
+        });
+      });
+      if (!children.length) children.push(new Paragraph({ children: [new TextRun({ text: `[Trang ${i + 1} không có lớp văn bản để chuyển đổi]`, color: '777777', italics: true })] }));
+      sections.push({
+        properties: {
+          page: {
+            size: {
+              // docx tự hoán đổi hai cạnh khi đặt LANDSCAPE, nên truyền khổ dọc vào API.
+              width: Math.round((landscape ? pageViewport.height : pageViewport.width) * 20),
+              height: Math.round((landscape ? pageViewport.width : pageViewport.height) * 20),
+              orientation: landscape ? PageOrientation.LANDSCAPE : PageOrientation.PORTRAIT
+            },
+            margin: { top: 0, right: 0, bottom: 0, left: 0, header: 0, footer: 0, gutter: 0 }
+          }
+        },
+        children
+      });
+    }
+    if (!extractedCharacters) throw new Error('PDF_SCAN_ONLY');
+    const blob = await Packer.toBlob(new Document({ sections }));
+    downloadBlob(blob, exportFileName('docx'));
+    toast(pagesWithoutText ? `Đã xuất Word; ${pagesWithoutText} trang không có văn bản để chỉnh sửa.` : 'Đã xuất Word dạng văn bản có thể chỉnh sửa.');
+  } catch (error) {
+    console.error(error);
+    toast(error.message === 'PDF_SCAN_ONLY' ? 'PDF này là bản scan/ảnh, cần OCR trước khi xuất Word chỉnh sửa.' : 'Có lỗi khi xuất Word. Vui lòng thử lại.');
+  } finally { hideLoading(); }
 };

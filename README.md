@@ -1,6 +1,8 @@
 # BÉ LAN PDF EDITOR
 
-Ứng dụng web tĩnh để sắp xếp, xoá, xoay và gộp các trang PDF trực tiếp trong trình duyệt.
+Ứng dụng web tĩnh để sắp xếp, xoá, xoay, gộp và xuất các trang PDF sang Word trực tiếp trong trình duyệt.
+
+Khi xuất Word, ứng dụng lấy lớp văn bản có sẵn trong PDF để tạo nội dung có thể chỉnh sửa, đồng thời tái tạo tên font PostScript, cỡ chữ, kiểu đậm/nghiêng, vị trí dòng, khổ giấy và chiều trang. Font cần có trên máy mở Word; nếu font nhúng trong PDF không được cài đặt hoặc tên font bị mã hóa, Word sẽ dùng font thay thế. PDF scan chỉ chứa ảnh cần được OCR trước.
 
 ## Đưa lên GitHub Pages
 
