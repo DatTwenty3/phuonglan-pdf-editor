@@ -98,7 +98,13 @@ async function renderMissingThumbnails(onProgress) {
       await pdfPage.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
       item.thumb = canvas.toDataURL('image/jpeg', .82);
       const target = document.querySelector(`[data-id="${item.id}"] .page-preview`);
-      if (target) target.innerHTML = `<img src="${item.thumb}" alt="Xem trước trang" style="max-width:100%;max-height:100%;transform:rotate(${item.rotation}deg)">`;
+      if (target) {
+        const isRotated = item.rotation !== 0;
+        const transformStyle = isRotated
+          ? `transform:rotate(${item.rotation}deg)${item.rotation % 180 !== 0 ? ' scale(0.72)' : ''};`
+          : '';
+        target.innerHTML = `<img src="${item.thumb}" alt="Xem trước trang" style="max-width:100%;max-height:100%;${transformStyle}">`;
+      }
       completed++;
       if (onProgress) onProgress(completed, total);
     }
@@ -136,13 +142,29 @@ function render() {
         </div>
       </div>
     </article>${insertButton(state.pages.indexOf(group.pages[group.pages.length - 1]) + 1)}`).join('');
-  els.pageGrid.innerHTML = state.pages.map((page, index) => `
+  els.pageGrid.innerHTML = state.pages.map((page, index) => {
+    const isRotated = page.rotation !== 0;
+    const transformStyle = isRotated
+      ? `transform:rotate(${page.rotation}deg)${page.rotation % 180 !== 0 ? ' scale(0.72)' : ''};`
+      : '';
+    const rotationHint = isRotated ? ` (Đã xoay ${page.rotation}°)` : '';
+    return `
     <article class="page-card file-colored ${page.selected ? 'selected' : ''}" data-id="${page.id}" style="--file-color:${filePalette[page.fileColor ?? 0][0]};--file-soft:${filePalette[page.fileColor ?? 0][1]}">
       <input class="page-check" type="checkbox" ${page.selected ? 'checked' : ''} aria-label="Chọn trang ${index + 1}">
-      <button class="remove-one" aria-label="Xóa trang ${index + 1}" title="Xóa riêng trang ${index + 1}">×</button>
-      <div class="page-preview">${page.thumb ? `<img src="${page.thumb}" alt="Xem trước trang ${index + 1}" style="max-width:100%;max-height:100%;transform:rotate(${page.rotation}deg)">` : 'Đang tải...'}</div>
-      <div class="page-meta"><div class="page-number">Trang ${index + 1}</div><div class="file-name" title="${escapeHtml(page.fileName)}">${escapeHtml(page.fileName)}</div></div>
-    </article>${insertButton(index + 1)}`).join('');
+      <button class="remove-one" type="button" aria-label="Xóa trang ${index + 1}" title="Xóa riêng trang ${index + 1}">×</button>
+      <div class="page-preview">${page.thumb ? `<img src="${page.thumb}" alt="Xem trước trang ${index + 1}" style="max-width:100%;max-height:100%;${transformStyle}">` : 'Đang tải...'}</div>
+      <div class="page-meta">
+        <div class="page-meta-row">
+          <span class="page-number" title="Trang ${index + 1}${rotationHint}">Trang ${index + 1}</span>
+          <div class="page-rotate-group" role="group" aria-label="Xoay trang ${index + 1}">
+            <button class="page-rotate-btn rotate-left" type="button" data-rotate="-90" title="Xoay trái 90° (Hiện tại: ${page.rotation}°)" aria-label="Xoay trái trang ${index + 1}">↶</button>
+            <button class="page-rotate-btn rotate-right" type="button" data-rotate="90" title="Xoay phải 90° (Hiện tại: ${page.rotation}°)" aria-label="Xoay phải trang ${index + 1}">↷</button>
+          </div>
+        </div>
+        <div class="file-name" title="${escapeHtml(page.fileName)}">${escapeHtml(page.fileName)}</div>
+      </div>
+    </article>${insertButton(index + 1)}`;
+  }).join('');
   const count = selected().length;
   els.workspaceEmpty.classList.toggle('hidden', state.pages.length > 0);
   els.compactFiles.classList.toggle('hidden', !state.compact);
@@ -169,10 +191,68 @@ function exportFileName(extension) {
 function removePages(ids) { state.pages = state.pages.filter(page => !ids.includes(page.id)); render(); }
 function rotateSelected(amount) { selected().forEach(page => page.rotation = (page.rotation + amount + 360) % 360); render(); }
 
-els.pageGrid.addEventListener('change', event => { if (!event.target.matches('.page-check')) return; const page = state.pages.find(p => p.id === +event.target.closest('.page-card').dataset.id); page.selected = event.target.checked; render(); });
-els.pageGrid.addEventListener('click', event => { if (!event.target.matches('.remove-one')) return; removePages([+event.target.closest('.page-card').dataset.id]); });
+function rotatePage(id, amount) {
+  const page = state.pages.find(p => p.id === id);
+  if (!page) return;
+  page.rotation = (page.rotation + amount + 360) % 360;
+
+  const card = els.pageGrid.querySelector(`.page-card[data-id="${id}"]`);
+  if (!card) {
+    render();
+    return;
+  }
+
+  const img = card.querySelector('.page-preview img');
+  if (img) {
+    const isRotated = page.rotation !== 0;
+    img.style.transform = isRotated
+      ? `rotate(${page.rotation}deg)${page.rotation % 180 !== 0 ? ' scale(0.72)' : ''}`
+      : '';
+  }
+
+  const pageNum = card.querySelector('.page-number');
+  if (pageNum) {
+    const pageIndex = state.pages.indexOf(page) + 1;
+    const rotationHint = page.rotation ? ` (Đã xoay ${page.rotation}°)` : '';
+    pageNum.title = `Trang ${pageIndex}${rotationHint}`;
+  }
+
+  const leftBtn = card.querySelector('.rotate-left');
+  const rightBtn = card.querySelector('.rotate-right');
+  if (leftBtn) leftBtn.title = `Xoay trái 90° (Hiện tại: ${page.rotation}°)`;
+  if (rightBtn) rightBtn.title = `Xoay phải 90° (Hiện tại: ${page.rotation}°)`;
+}
+
+els.pageGrid.addEventListener('change', event => {
+  if (!event.target.matches('.page-check')) return;
+  const page = state.pages.find(p => p.id === +event.target.closest('.page-card').dataset.id);
+  if (page) {
+    page.selected = event.target.checked;
+    render();
+  }
+});
+
 els.pageGrid.addEventListener('click', event => {
-  if (event.target.closest('.page-check, .remove-one')) return;
+  const rotateBtn = event.target.closest('.page-rotate-btn');
+  if (rotateBtn) {
+    event.stopPropagation();
+    const card = rotateBtn.closest('.page-card');
+    if (!card) return;
+    const pageId = +card.dataset.id;
+    const amount = parseInt(rotateBtn.dataset.rotate, 10) || 90;
+    rotatePage(pageId, amount);
+    return;
+  }
+
+  const removeBtn = event.target.closest('.remove-one');
+  if (removeBtn) {
+    event.stopPropagation();
+    const card = removeBtn.closest('.page-card');
+    if (card) removePages([+card.dataset.id]);
+    return;
+  }
+
+  if (event.target.closest('.page-check, .insert-point')) return;
   const card = event.target.closest('.page-card');
   if (card) openPreview(+card.dataset.id);
 });
@@ -200,6 +280,8 @@ els.fileInput.onchange = event => { addFiles(event.target.files); event.target.v
 let multiPageDrag = null;
 new Sortable(els.pageGrid, {
   draggable: '.page-card',
+  filter: 'button, input, .insert-point',
+  preventOnFilter: false,
   animation: 180,
   delay: 80,
   delayOnTouchOnly: true,
@@ -263,16 +345,11 @@ const previewModal = document.getElementById('previewModal');
 const previewCanvas = document.getElementById('previewCanvas');
 const previewSpinner = document.getElementById('previewSpinner');
 
-async function openPreview(id) {
-  const item = state.pages.find(page => page.id === id);
-  if (!item) return;
-  document.getElementById('previewTitle').textContent = `Xem trước trang ${state.pages.indexOf(item) + 1}`;
-  document.getElementById('previewFileName').textContent = item.fileName;
+let currentPreviewId = null;
+
+async function renderPreviewCanvas(item) {
   previewCanvas.classList.remove('ready');
   previewSpinner.classList.remove('hidden');
-  previewModal.classList.remove('hidden');
-  document.body.style.overflow = 'hidden';
-  requestAnimationFrame(() => previewModal.classList.add('open'));
   try {
     const pdf = await pdfjsLib.getDocument({ data: item.sourceBytes.slice() }).promise;
     const pdfPage = await pdf.getPage(item.sourcePage + 1);
@@ -291,10 +368,53 @@ async function openPreview(id) {
   }
 }
 
+async function openPreview(id) {
+  const item = state.pages.find(page => page.id === id);
+  if (!item) return;
+  currentPreviewId = id;
+  const rotationText = item.rotation ? ` (đã xoay ${item.rotation}°)` : '';
+  document.getElementById('previewTitle').textContent = `Xem trước trang ${state.pages.indexOf(item) + 1}${rotationText}`;
+  document.getElementById('previewFileName').textContent = item.fileName;
+  previewModal.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  requestAnimationFrame(() => previewModal.classList.add('open'));
+  await renderPreviewCanvas(item);
+}
+
 function closePreview() {
+  currentPreviewId = null;
   previewModal.classList.remove('open');
   document.body.style.overflow = '';
   setTimeout(() => previewModal.classList.add('hidden'), 240);
+}
+
+const previewRotateLeftBtn = document.getElementById('previewRotateLeftBtn');
+const previewRotateRightBtn = document.getElementById('previewRotateRightBtn');
+
+if (previewRotateLeftBtn) {
+  previewRotateLeftBtn.onclick = async () => {
+    if (currentPreviewId === null) return;
+    rotatePage(currentPreviewId, -90);
+    const item = state.pages.find(p => p.id === currentPreviewId);
+    if (item) {
+      const rotationText = item.rotation ? ` (đã xoay ${item.rotation}°)` : '';
+      document.getElementById('previewTitle').textContent = `Xem trước trang ${state.pages.indexOf(item) + 1}${rotationText}`;
+      await renderPreviewCanvas(item);
+    }
+  };
+}
+
+if (previewRotateRightBtn) {
+  previewRotateRightBtn.onclick = async () => {
+    if (currentPreviewId === null) return;
+    rotatePage(currentPreviewId, 90);
+    const item = state.pages.find(p => p.id === currentPreviewId);
+    if (item) {
+      const rotationText = item.rotation ? ` (đã xoay ${item.rotation}°)` : '';
+      document.getElementById('previewTitle').textContent = `Xem trước trang ${state.pages.indexOf(item) + 1}${rotationText}`;
+      await renderPreviewCanvas(item);
+    }
+  };
 }
 
 document.getElementById('closePreviewBtn').onclick = closePreview;

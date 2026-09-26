@@ -7,7 +7,7 @@
   <meta name="description" content="BÉ LAN PDF EDITOR - Sắp xếp, xóa trang và gộp PDF ngay trên trình duyệt.">
   <title>BÉ LAN PDF EDITOR</title>
   <link rel="stylesheet" href="styles.css?v=12">
-  <link rel="stylesheet" href="layout-fixes.css?v=23">
+  <link rel="stylesheet" href="layout-fixes.css?v=25">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
@@ -103,7 +103,11 @@
     <div class="preview-panel">
       <div class="preview-head">
         <div><b id="previewTitle">Xem trước trang</b><span id="previewFileName"></span></div>
-        <button id="closePreviewBtn" aria-label="Đóng xem trước" title="Đóng">×</button>
+        <div class="preview-actions">
+          <button class="preview-tool-btn" id="previewRotateLeftBtn" type="button" aria-label="Xoay trái" title="Xoay trái 90°">↶</button>
+          <button class="preview-tool-btn" id="previewRotateRightBtn" type="button" aria-label="Xoay phải" title="Xoay phải 90°">↷</button>
+          <button id="closePreviewBtn" aria-label="Đóng xem trước" title="Đóng">×</button>
+        </div>
       </div>
       <div class="preview-stage" id="previewStage">
         <div class="preview-spinner" id="previewSpinner"></div>
@@ -117,6 +121,6 @@
   <div class="loading hidden" id="loading"><div class="paper-loader" aria-hidden="true"><i></i><i></i><i></i></div><p id="loadingText">Đang xếp giấy thật ngay ngắn...</p><div class="progress-track" role="progressbar" aria-label="Tiến trình xử lý" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="progressBar"></span></div><b class="progress-value" id="progressValue">0%</b></div>
 
   <footer><span>BÉ LAN PDF EDITOR</span><span>Được xếp giấy cẩn thận bởi Bé Lan ✦</span><span>PDF của bạn luôn ở trên thiết bị.</span></footer>
-  <script src="app.js?v=19" charset="UTF-8"></script>
+  <script src="app.js?v=21" charset="UTF-8"></script>
 </body>
 </html>
