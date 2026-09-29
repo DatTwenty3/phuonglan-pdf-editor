@@ -144,7 +144,12 @@ function render() {
     group.segmentTotal = segmentTotals.get(group.sourceBytes);
   });
 
-  els.compactFiles.innerHTML = fileGroups.map(group => `
+  const insertButton = index => `<button class="insert-point" type="button" data-insert-at="${index}" aria-label="Chèn tệp PDF vào vị trí này" title="Chèn tệp PDF vào đây"><svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg></button>`;
+
+  els.compactFiles.innerHTML = fileGroups.map(group => {
+    const lastPage = group.pages[group.pages.length - 1];
+    const groupEndIndex = state.pages.indexOf(lastPage) + 1;
+    return `
     <article class="compact-file-card" data-segment-pages="${group.pages.map(page => page.id).join(',')}">
       <div class="compact-cover">${group.pages[0].thumb ? `<img src="${group.pages[0].thumb}" alt="Trang đầu của ${escapeHtml(group.fileName)}" draggable="false">` : '<span class="pdf-tag">PDF</span>'}</div>
       <div class="compact-file-info">
@@ -154,7 +159,8 @@ function render() {
           <button class="file-delete" type="button" data-delete-segment="${group.pages.map(page => page.id).join(',')}" aria-label="Xóa ${group.segmentTotal > 1 ? `phần ${group.segmentPosition} của` : 'tệp'} ${escapeHtml(group.fileName)}" title="Xóa tệp này">✕ Xóa file</button>
         </div>
       </div>
-    </article>`).join('');
+    </article>${insertButton(groupEndIndex)}`;
+  }).join('');
 
   els.pageGrid.innerHTML = state.pages.map((page, index) => {
     const isRotated = page.rotation !== 0;
@@ -178,7 +184,7 @@ function render() {
         </div>
         <div class="file-name" title="${escapeHtml(page.fileName)}">${escapeHtml(page.fileName)}</div>
       </div>
-    </article>`;
+    </article>${insertButton(index + 1)}`;
   }).join('');
 
   const count = selected().length;
@@ -324,11 +330,12 @@ els.fileInput.onchange = event => { addFiles(event.target.files); event.target.v
 let multiPageDrag = null;
 const pageGridSortable = new Sortable(els.pageGrid, {
   draggable: '.page-card',
-  filter: 'button, input, .insert-point, .page-rotate-btn',
+  filter: 'button, input, .insert-point, .page-rotate-btn, .remove-one',
   preventOnFilter: false,
   animation: 180,
-  delay: 80,
+  delay: 40,
   delayOnTouchOnly: true,
+  touchStartThreshold: 3,
   onStart: event => {
     if (isMarqueeDragging) return false;
     event.item.classList.add('is-lifted');
@@ -346,8 +353,9 @@ const pageGridSortable = new Sortable(els.pageGrid, {
   onEnd: event => {
     event.item.classList.remove('is-lifted');
     if (!multiPageDrag) {
-      const [moved] = state.pages.splice(event.oldDraggableIndex, 1);
-      state.pages.splice(event.newDraggableIndex, 0, moved);
+      const domIds = [...els.pageGrid.querySelectorAll('.page-card')].map(card => +card.dataset.id);
+      const pagesById = new Map(state.pages.map(p => [p.id, p]));
+      state.pages = domIds.map(id => pagesById.get(id)).filter(Boolean);
       render();
       return;
     }
@@ -564,15 +572,15 @@ const finishMarqueeDrag = () => {
 document.addEventListener('pointerup', finishMarqueeDrag);
 document.addEventListener('pointercancel', finishMarqueeDrag);
 
-// Vô hiệu hóa hành vi bôi đen văn bản và kéo ảnh của trình duyệt trên khu vực dropzone
+// Vô hiệu hóa hành vi bôi đen văn bản và kéo ảnh của trình duyệt chỉ khi đang quét chuột
 document.addEventListener('selectstart', event => {
-  if (isMarqueeTracking || isMarqueeDragging || event.target.closest('#dropzone')) {
+  if (isMarqueeTracking || isMarqueeDragging) {
     event.preventDefault();
   }
 });
 
 document.addEventListener('dragstart', event => {
-  if (event.target.closest('.page-preview, .page-preview img, .page-card, #dropzone')) {
+  if (isMarqueeTracking || isMarqueeDragging) {
     event.preventDefault();
   }
 });

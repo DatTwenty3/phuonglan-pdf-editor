@@ -218,9 +218,115 @@
   transform: scale(0.9);
 }
 
+.page-grid {
+  align-items: center !important;
+  gap: 16px 8px !important;
+}
+
 .page-card {
   flex: 0 0 var(--grid-card-size, 160px) !important;
   width: var(--grid-card-size, 160px) !important;
+}
+
+/* Nút chèn trang / tệp ở giữa (Insert Point) */
+.insert-point {
+  position: relative !important;
+  width: 24px !important;
+  height: 24px !important;
+  flex: 0 0 24px !important;
+  align-self: center !important;
+  margin: 0 !important;
+  border-radius: var(--radius-full) !important;
+  border: 1.5px dashed var(--border-focus) !important;
+  background: var(--surface) !important;
+  color: var(--text-muted) !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  box-shadow: var(--shadow-xs) !important;
+  opacity: 0.65 !important;
+  transition: all 0.2s var(--spring) !important;
+  z-index: 4 !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.insert-point svg {
+  display: block !important;
+  width: 12px !important;
+  height: 12px !important;
+  pointer-events: none !important;
+  transition: transform 0.25s var(--spring) !important;
+  flex-shrink: 0 !important;
+}
+
+.insert-point:hover {
+  opacity: 1 !important;
+  background: var(--primary-light) !important;
+  border: 1.5px solid var(--primary) !important;
+  color: var(--primary) !important;
+  transform: scale(1.22) !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25) !important;
+  z-index: 6 !important;
+}
+
+.insert-point:hover svg {
+  transform: rotate(90deg) scale(1.05) !important;
+}
+
+.insert-point:active {
+  transform: scale(0.92) !important;
+}
+
+/* Fallback chuẩn xác nếu không có phần tử svg */
+.insert-point:not(:has(svg))::before,
+.insert-point:not(:has(svg))::after {
+  content: "" !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  background-color: currentColor !important;
+  border-radius: 9999px !important;
+  transform: translate(-50%, -50%) !important;
+  pointer-events: none !important;
+  transition: background-color 0.2s, transform 0.25s var(--spring) !important;
+}
+
+.insert-point:not(:has(svg))::before {
+  width: 10px !important;
+  height: 2px !important;
+}
+
+.insert-point:not(:has(svg))::after {
+  width: 2px !important;
+  height: 10px !important;
+}
+
+.insert-point:not(:has(svg)):hover::before {
+  transform: translate(-50%, -50%) rotate(90deg) !important;
+}
+
+.insert-point:not(:has(svg)):hover::after {
+  transform: translate(-50%, -50%) rotate(90deg) !important;
+}
+
+/* Sắp xếp kéo thả SortableJS */
+.page-card.is-lifted,
+.page-card.sortable-chosen {
+  cursor: grabbing !important;
+  transform: scale(1.04) translateY(-6px) !important;
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.16) !important;
+  z-index: 50 !important;
+  border-color: var(--primary) !important;
+}
+
+.page-card.sortable-ghost {
+  opacity: 0.3 !important;
+  background: var(--primary-light) !important;
+  border: 2px dashed var(--primary) !important;
 }
 
 /* ==========================================================================

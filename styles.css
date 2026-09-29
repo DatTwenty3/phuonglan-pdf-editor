@@ -654,8 +654,101 @@ main {
 .page-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 20px 16px;
-  align-items: flex-start;
+  gap: 16px 8px;
+  align-items: center;
+}
+
+/* Nút chèn trang / tệp vào giữa (Insert Point) */
+.insert-point {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  align-self: center;
+  margin: 0;
+  border-radius: var(--radius-full);
+  border: 1.5px dashed var(--border-focus);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 0;
+  line-height: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-xs);
+  opacity: 0.65;
+  transition: all 0.2s var(--spring);
+  z-index: 4;
+  user-select: none;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.insert-point svg {
+  display: block;
+  width: 12px;
+  height: 12px;
+  pointer-events: none;
+  transition: transform 0.25s var(--spring);
+  flex-shrink: 0;
+}
+
+.insert-point:hover {
+  opacity: 1;
+  background: var(--primary-light);
+  border: 1.5px solid var(--primary);
+  color: var(--primary);
+  transform: scale(1.22);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+  z-index: 6;
+}
+
+.insert-point:hover svg {
+  transform: rotate(90deg) scale(1.05);
+}
+
+.insert-point:active {
+  transform: scale(0.92);
+}
+
+/* Fallback chuẩn xác nếu không có thẻ svg */
+.insert-point:not(:has(svg))::before,
+.insert-point:not(:has(svg))::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  background-color: currentColor;
+  border-radius: 9999px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  transition: background-color 0.2s, transform 0.25s var(--spring);
+}
+
+.insert-point:not(:has(svg))::before {
+  width: 10px;
+  height: 2px;
+}
+
+.insert-point:not(:has(svg))::after {
+  width: 2px;
+  height: 10px;
+}
+
+.insert-point:not(:has(svg)):hover::before {
+  transform: translate(-50%, -50%) rotate(90deg);
+}
+
+.insert-point:not(:has(svg)):hover::after {
+  transform: translate(-50%, -50%) rotate(90deg);
+}
+
+.compact-files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 8px;
+  align-items: center;
 }
 
 .page-card {
