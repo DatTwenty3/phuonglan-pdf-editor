@@ -2,11 +2,16 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
 
 const state = { pages: [], nextId: 1, nextFileColor: 0, compact: true, insertAt: null };
 const filePalette = [
-  ['#6b352b', '#d7ad9d'], ['#285f70', '#9fc5cf'], ['#6b5a20', '#d8c985'],
-  ['#694273', '#c8a8cf'], ['#387044', '#a8cfaf'], ['#9a4d22', '#e2b18f'],
-  ['#3e4f83', '#aeb9df'], ['#8a3b58', '#dfadc0']
+  ['#2563eb', '#eff6ff'], // Royal Blue
+  ['#059669', '#ecfdf5'], // Emerald Green
+  ['#7c3aed', '#f5f3ff'], // Purple
+  ['#d97706', '#fffbeb'], // Amber
+  ['#0284c7', '#f0f9ff'], // Sky Blue
+  ['#db2777', '#fdf2f8'], // Rose
+  ['#4f46e5', '#eef2ff'], // Indigo
+  ['#0d9488', '#f0fdfa']  // Teal
 ];
-const els = Object.fromEntries(['emptyState','workspace','workspaceEmpty','fileInput','pageGrid','compactFiles','fileModeBtn','pageModeBtn','summary','deleteBtn','selectAllBtn','rotateLeftBtn','rotateRightBtn','dropzone','loading','loadingText','progressBar','progressValue','toast','confetti','mascotMessage','marqueeSelectBtn','marqueeBox','marqueeBadge','gridZoomOutBtn','gridZoomInBtn','previewZoomOutBtn','previewZoomLevelBtn','previewZoomInBtn','previewZoomFitBtn','previewCanvasWrapper','previewStage'].map(id => [id, document.getElementById(id)]));
+const els = Object.fromEntries(['emptyState','workspace','workspaceEmpty','fileInput','pageGrid','compactFiles','fileModeBtn','pageModeBtn','summary','deleteBtn','selectAllBtn','deselectAllBtn','rotateLeftBtn','rotateRightBtn','dropzone','loading','loadingText','progressBar','progressValue','toast','confetti','marqueeBox','marqueeBadge','gridZoomOutBtn','gridZoomInBtn','previewZoomOutBtn','previewZoomLevelBtn','previewZoomInBtn','previewZoomFitBtn','previewCanvasWrapper','previewStage'].map(id => [id, document.getElementById(id)]));
 
 const setProgress = value => {
   const percent = Math.max(0, Math.min(100, Math.round(value)));
@@ -24,7 +29,16 @@ const hideLoading = () => {
 };
 let toastTimer;
 const burstConfetti = () => {
-  els.confetti.innerHTML = Array.from({ length: 14 }, (_, index) => `<i style="--i:${index};--x:${(index % 7 - 3) * 18}px"></i>`).join('');
+  const colors = ['#2563eb', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4'];
+  els.confetti.innerHTML = Array.from({ length: 24 }, (_, index) => {
+    const angle = (index / 24) * 360;
+    const distance = 45 + Math.random() * 85;
+    const x = Math.round(Math.cos(angle * Math.PI / 180) * distance);
+    const y = Math.round(Math.sin(angle * Math.PI / 180) * distance - 50);
+    const rot = Math.round(Math.random() * 360);
+    const color = colors[index % colors.length];
+    return `<i style="--x:${x}px;--y:${y}px;--rot:${rot}deg;--c:${color};--d:${index * 12}ms"></i>`;
+  }).join('');
   els.confetti.classList.remove('burst');
   requestAnimationFrame(() => els.confetti.classList.add('burst'));
 };
@@ -36,10 +50,9 @@ const toast = (text, requestedType) => {
   requestAnimationFrame(() => els.toast.classList.add('show'));
   if (type === 'success') {
     burstConfetti();
-    if (els.mascotMessage) { els.mascotMessage.textContent = 'Xong rồi nè!'; els.mascotMessage.parentElement.classList.add('celebrate'); }
   }
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { els.toast.classList.remove('show'); els.mascotMessage?.parentElement.classList.remove('celebrate'); }, 2600);
+  toastTimer = setTimeout(() => { els.toast.classList.remove('show'); }, 2600);
 };
 const selected = () => state.pages.filter(page => page.selected);
 
@@ -130,29 +143,31 @@ function render() {
     group.segmentPosition = position;
     group.segmentTotal = segmentTotals.get(group.sourceBytes);
   });
-  const insertButton = index => `<button class="insert-point" type="button" data-insert-at="${index}" aria-label="Thêm PDF vào vị trí này" title="Thêm PDF vào đây">＋</button>`;
+
   els.compactFiles.innerHTML = fileGroups.map(group => `
     <article class="compact-file-card" data-segment-pages="${group.pages.map(page => page.id).join(',')}">
-      <div class="compact-cover">${group.pages[0].thumb ? `<img src="${group.pages[0].thumb}" alt="Trang đầu của ${escapeHtml(group.fileName)}" draggable="false">` : 'PDF'}</div>
+      <div class="compact-cover">${group.pages[0].thumb ? `<img src="${group.pages[0].thumb}" alt="Trang đầu của ${escapeHtml(group.fileName)}" draggable="false">` : '<span class="pdf-tag">PDF</span>'}</div>
       <div class="compact-file-info">
         <b title="${escapeHtml(group.fileName)}">${escapeHtml(group.fileName)}</b>
         <span>${group.pages.length} trang PDF${group.segmentTotal > 1 ? ` • Phần ${group.segmentPosition}/${group.segmentTotal}` : ''}</span>
         <div class="compact-actions">
-          <button class="file-delete" type="button" data-delete-segment="${group.pages.map(page => page.id).join(',')}" aria-label="Xóa ${group.segmentTotal > 1 ? `phần ${group.segmentPosition} của` : 'tệp'} ${escapeHtml(group.fileName)}" title="Xóa nhóm trang này">× ${group.segmentTotal > 1 ? 'Xóa phần' : 'Xóa file'}</button>
+          <button class="file-delete" type="button" data-delete-segment="${group.pages.map(page => page.id).join(',')}" aria-label="Xóa ${group.segmentTotal > 1 ? `phần ${group.segmentPosition} của` : 'tệp'} ${escapeHtml(group.fileName)}" title="Xóa tệp này">✕ Xóa file</button>
         </div>
       </div>
-    </article>${insertButton(state.pages.indexOf(group.pages[group.pages.length - 1]) + 1)}`).join('');
+    </article>`).join('');
+
   els.pageGrid.innerHTML = state.pages.map((page, index) => {
     const isRotated = page.rotation !== 0;
     const transformStyle = isRotated
       ? `transform:rotate(${page.rotation}deg)${page.rotation % 180 !== 0 ? ' scale(0.72)' : ''};`
       : '';
     const rotationHint = isRotated ? ` (Đã xoay ${page.rotation}°)` : '';
+    const colorPair = filePalette[page.fileColor ?? 0] || filePalette[0];
     return `
-    <article class="page-card file-colored ${page.selected ? 'selected' : ''}" data-id="${page.id}" style="--file-color:${filePalette[page.fileColor ?? 0][0]};--file-soft:${filePalette[page.fileColor ?? 0][1]}">
+    <article class="page-card file-colored ${page.selected ? 'selected' : ''}" data-id="${page.id}" style="--file-color:${colorPair[0]};--file-soft:${colorPair[1]}">
       <input class="page-check" type="checkbox" ${page.selected ? 'checked' : ''} aria-label="Chọn trang ${index + 1}">
-      <button class="remove-one" type="button" aria-label="Xóa trang ${index + 1}" title="Xóa riêng trang ${index + 1}">×</button>
-      <div class="page-preview">${page.thumb ? `<img src="${page.thumb}" alt="Xem trước trang ${index + 1}" draggable="false" style="max-width:100%;max-height:100%;${transformStyle}">` : 'Đang tải...'}</div>
+      <button class="remove-one" type="button" aria-label="Xóa trang ${index + 1}" title="Xóa riêng trang ${index + 1}">✕</button>
+      <div class="page-preview">${page.thumb ? `<img src="${page.thumb}" alt="Xem trước trang ${index + 1}" draggable="false" style="max-width:100%;max-height:100%;${transformStyle}">` : '<div class="preview-loading"></div>'}</div>
       <div class="page-meta">
         <div class="page-meta-row">
           <span class="page-number" title="Trang ${index + 1}${rotationHint}">Trang ${index + 1}</span>
@@ -163,8 +178,9 @@ function render() {
         </div>
         <div class="file-name" title="${escapeHtml(page.fileName)}">${escapeHtml(page.fileName)}</div>
       </div>
-    </article>${insertButton(index + 1)}`;
+    </article>`;
   }).join('');
+
   const count = selected().length;
   els.workspaceEmpty.classList.toggle('hidden', state.pages.length > 0);
   els.compactFiles.classList.toggle('hidden', !state.compact);
@@ -174,11 +190,22 @@ function render() {
   els.pageModeBtn.classList.toggle('active', !state.compact);
   els.fileModeBtn.setAttribute('aria-pressed', String(state.compact));
   els.pageModeBtn.setAttribute('aria-pressed', String(!state.compact));
+
   const uniqueFileCount = new Set(state.pages.map(page => page.sourceBytes)).size;
-  const multiMoveHint = count > 1 ? ` • Đã chọn ${count} trang — kéo một trang đã chọn để di chuyển cả nhóm` : '';
-  els.summary.textContent = state.compact ? `${state.pages.length} trang trong ${fileGroups.length} nhóm từ ${uniqueFileCount} tệp PDF` : `${state.pages.length} trang từ ${uniqueFileCount} tệp • Kéo thả để thay đổi thứ tự${multiMoveHint}`;
+  const multiMoveHint = count > 1 ? ` • Đã chọn ${count} trang` : '';
+  els.summary.textContent = state.compact
+    ? `${state.pages.length} trang trong ${fileGroups.length} nhóm từ ${uniqueFileCount} tệp PDF`
+    : `${state.pages.length} trang từ ${uniqueFileCount} tệp PDF${multiMoveHint}`;
   els.deleteBtn.disabled = els.rotateLeftBtn.disabled = els.rotateRightBtn.disabled = count === 0;
-  els.selectAllBtn.textContent = count === state.pages.length && count ? '☐ Bỏ chọn tất cả' : '☑ Chọn tất cả';
+  els.deleteBtn.innerHTML = count > 0 ? `🗑 <span>Xóa đã chọn (${count})</span>` : `🗑 <span>Xóa đã chọn</span>`;
+  if (els.deselectAllBtn) {
+    els.deselectAllBtn.classList.toggle('hidden', count === 0);
+    els.deselectAllBtn.innerHTML = count > 0 ? `☐ <span>Bỏ chọn (${count})</span>` : `☐ <span>Bỏ chọn tất cả</span>`;
+  }
+  if (els.selectAllBtn) {
+    els.selectAllBtn.disabled = state.pages.length === 0 || count === state.pages.length;
+    els.selectAllBtn.innerHTML = '☑ <span>Chọn tất cả</span>';
+  }
 }
 
 function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
@@ -256,19 +283,22 @@ els.pageGrid.addEventListener('click', event => {
   const card = event.target.closest('.page-card');
   if (card) {
     if (justFinishedMarquee) return;
-    if (isMarqueeModeActive) {
-      const page = state.pages.find(p => p.id === +card.dataset.id);
-      if (page) {
-        page.selected = !page.selected;
-        render();
-      }
-      return;
-    }
     openPreview(+card.dataset.id);
   }
 });
 document.getElementById('deleteBtn').onclick = () => { const ids = selected().map(p => p.id); if (ids.length) removePages(ids); };
-document.getElementById('selectAllBtn').onclick = () => { const value = selected().length !== state.pages.length; state.pages.forEach(p => p.selected = value); render(); };
+document.getElementById('selectAllBtn').onclick = () => {
+  state.pages.forEach(p => p.selected = true);
+  render();
+  toast('Đã chọn tất cả các trang.');
+};
+if (els.deselectAllBtn) {
+  els.deselectAllBtn.onclick = () => {
+    state.pages.forEach(p => p.selected = false);
+    render();
+    toast('Đã bỏ chọn tất cả.');
+  };
+}
 document.getElementById('rotateLeftBtn').onclick = () => rotateSelected(-90);
 document.getElementById('rotateRightBtn').onclick = () => rotateSelected(90);
 els.fileModeBtn.onclick = () => { state.compact = true; render(); };
@@ -300,7 +330,7 @@ const pageGridSortable = new Sortable(els.pageGrid, {
   delay: 80,
   delayOnTouchOnly: true,
   onStart: event => {
-    if (isMarqueeModeActive) return false;
+    if (isMarqueeDragging) return false;
     event.item.classList.add('is-lifted');
     const draggedId = +event.item.dataset.id;
     const draggedPage = state.pages.find(page => page.id === draggedId);
@@ -387,7 +417,6 @@ if (els.gridZoomInBtn) {
 /* ==========================================================
    BỘ MÁY QUÉT CHUỘT CHỌN NHIỀU TRANG 1 LƯỢT (MARQUEE SELECTION)
    ========================================================== */
-let isMarqueeModeActive = false;
 let isMarqueeTracking = false;
 let isMarqueeDragging = false;
 let marqueeStartX = 0;
@@ -396,20 +425,6 @@ let startEventShift = false;
 let startEventCtrl = false;
 let justFinishedMarquee = false;
 const candidateIds = new Set();
-
-if (els.marqueeSelectBtn) {
-  els.marqueeSelectBtn.onclick = () => {
-    isMarqueeModeActive = !isMarqueeModeActive;
-    els.marqueeSelectBtn.classList.toggle('active', isMarqueeModeActive);
-    els.dropzone.classList.toggle('marquee-mode-active', isMarqueeModeActive);
-    pageGridSortable.option('disabled', isMarqueeModeActive);
-    if (isMarqueeModeActive) {
-      toast('Đã bật Quét chọn: Kéo chuột để quét chọn nhiều trang.');
-    } else {
-      toast('Đã tắt Quét chọn: Chế độ sắp xếp kéo thả đã sẵn sàng.');
-    }
-  };
-}
 
 els.dropzone.addEventListener('pointerdown', event => {
   if (state.compact) return;
@@ -420,8 +435,8 @@ els.dropzone.addEventListener('pointerdown', event => {
   const isShift = event.shiftKey;
   const isCtrl = event.ctrlKey || event.metaKey;
 
-  // Nếu nhấp vào card mà không bật marqueeMode hoặc Shift/Ctrl, nhường cho Sortable / Click mở preview
-  if (card && !isMarqueeModeActive && !isShift && !isCtrl) {
+  // Nếu nhấp trực tiếp vào thẻ trang mà không giữ Shift/Ctrl, nhường cho Sortable kéo thả sắp xếp / click mở xem trước
+  if (card && !isShift && !isCtrl) {
     return;
   }
 
@@ -459,6 +474,7 @@ document.addEventListener('pointermove', event => {
     isMarqueeDragging = true;
     els.dropzone.classList.add('is-marquee-selecting');
     if (els.marqueeBox) els.marqueeBox.classList.remove('hidden');
+    pageGridSortable.option('disabled', true);
   }
 
   if (isMarqueeDragging && els.marqueeBox) {
@@ -542,6 +558,7 @@ const finishMarqueeDrag = () => {
     if (els.marqueeBox) els.marqueeBox.classList.add('hidden');
     els.dropzone.classList.remove('is-marquee-selecting');
   }
+  pageGridSortable.option('disabled', false);
 };
 
 document.addEventListener('pointerup', finishMarqueeDrag);
@@ -549,7 +566,7 @@ document.addEventListener('pointercancel', finishMarqueeDrag);
 
 // Vô hiệu hóa hành vi bôi đen văn bản và kéo ảnh của trình duyệt trên khu vực dropzone
 document.addEventListener('selectstart', event => {
-  if (isMarqueeTracking || isMarqueeDragging || isMarqueeModeActive || event.target.closest('#dropzone')) {
+  if (isMarqueeTracking || isMarqueeDragging || event.target.closest('#dropzone')) {
     event.preventDefault();
   }
 });
@@ -822,12 +839,10 @@ document.addEventListener('keydown', event => {
       closePreview();
       return;
     }
-    if (isMarqueeModeActive) {
-      isMarqueeModeActive = false;
-      if (els.marqueeSelectBtn) els.marqueeSelectBtn.classList.remove('active');
-      if (els.dropzone) els.dropzone.classList.remove('marquee-mode-active');
-      pageGridSortable.option('disabled', false);
-      toast('Đã thoát chế độ Quét chọn.');
+    if (selected().length > 0) {
+      state.pages.forEach(p => p.selected = false);
+      render();
+      toast('Đã bỏ chọn tất cả.');
     }
   }
 });

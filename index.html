@@ -6,8 +6,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="BÉ LAN PDF EDITOR - Sắp xếp, xóa trang và gộp PDF ngay trên trình duyệt.">
   <title>BÉ LAN PDF EDITOR</title>
-  <link rel="stylesheet" href="styles.css?v=13">
-  <link rel="stylesheet" href="layout-fixes.css?v=28">
+  <link rel="stylesheet" href="styles.css?v=16">
+  <link rel="stylesheet" href="layout-fixes.css?v=32">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
@@ -24,82 +24,71 @@
 
   <main>
     <section class="hero" id="emptyState">
-      <div class="hero-doodles" aria-hidden="true">
-        <span class="doodle doodle-star">✦</span>
-        <span class="doodle doodle-clip">⌇</span>
-        <span class="doodle doodle-spark">✧</span>
-        <span class="doodle doodle-flower">✿</span>
-      </div>
-      <p class="comic-pop">BỤP! PDF GỌN GÀNG NGAY!</p>
       <div class="hero-logo-frame">
         <img src="logo.png" alt="Logo BÉ LAN PDF EDITOR">
-        <span class="mascot-badge" aria-hidden="true">PDF</span>
-        <span class="mascot-speech">Thả PDF vào đây nha!</span>
       </div>
-      <p class="eyebrow">CÔNG CỤ PDF TRỰC TUYẾN</p>
-      <h1>Sắp xếp PDF<br><span>nhẹ như lật trang!</span></h1>
-      <p class="hero-copy">Đổi vị trí, xóa trang và kết hợp nhiều tài liệu PDF ngay trên trình duyệt. File của bạn không được tải lên máy chủ.</p>
-      <button class="primary-btn large candy-btn" id="heroAddBtn"><span>＋</span> Chọn tệp PDF</button>
-      <p class="drop-hint"><span aria-hidden="true">↳</span> hoặc thả PDF vào đây nha!</p>
+      <span class="hero-badge">CÔNG CỤ PDF TRỰC TUYẾN</span>
+      <h1>Sắp xếp PDF<br><span>nhẹ nhàng & an toàn</span></h1>
+      <p class="hero-copy">Đổi vị trí, xoay góc, xóa trang hoặc kết hợp nhiều tài liệu PDF ngay trên trình duyệt. File của bạn luôn được bảo mật tuyệt đối trên thiết bị.</p>
+      <div class="hero-action-box">
+        <button class="primary-btn large" id="heroAddBtn"><span>＋</span> Chọn tệp PDF</button>
+        <p class="drop-hint">hoặc kéo thả tệp PDF vào bất kỳ đâu</p>
+      </div>
       <div class="feature-row">
-        <span>✓ Không cần đăng ký</span><span>✓ Không giới hạn trang</span><span>✓ Hoàn toàn miễn phí</span>
+        <span><i class="feature-check">✓</i> Không cần đăng ký</span>
+        <span><i class="feature-check">✓</i> Không giới hạn trang</span>
+        <span><i class="feature-check">✓</i> Hoàn toàn miễn phí</span>
       </div>
     </section>
 
     <section class="workspace hidden" id="workspace">
       <div class="workspace-head">
-        <div>
-          <p class="eyebrow">TRÌNH SẮP XẾP TRANG</p>
+        <div class="workspace-title-group">
+          <span class="eyebrow">TRÌNH SẮP XẾP TRANG</span>
           <h1>Tổ chức tài liệu của bạn</h1>
           <p id="summary">0 trang</p>
         </div>
-        <div class="export-actions finish-tray" aria-label="Hoàn tất và tải xuống">
-          <span class="tray-label">HOÀN TẤT ✦</span>
-          <div class="finish-mascot" aria-hidden="true"><img src="logo.png" alt=""><span id="mascotMessage">Sẵn sàng xếp giấy!</span></div>
-          <button class="primary-btn word-btn" id="downloadWordBtn" type="button">Xuất sang Word <span>↓</span></button>
+        <div class="export-actions" aria-label="Hoàn tất và tải xuống">
+          <button class="secondary-btn word-btn" id="downloadWordBtn" type="button">Xuất sang Word <span>↓</span></button>
           <button class="primary-btn" id="downloadBtn" type="button">Tải PDF đã gộp <span>↓</span></button>
-          <span class="export-note">Xuất chữ thành nội dung có thể chỉnh sửa; PDF scan cần OCR.</span>
         </div>
       </div>
 
       <div class="toolbar">
-        <div class="toolbar-section toolbar-section-add">
-          <span class="toolbar-label">THÊM NỘI DUNG</span>
-          <div class="toolbar-group">
-            <button class="tool-btn" id="addBtn">＋ <span>Thêm PDF</span></button>
-          </div>
-        </div>
-        <div class="toolbar-section toolbar-section-edit">
-          <span class="toolbar-label">CHỈNH TRANG</span>
-          <div class="toolbar-group">
+        <div class="toolbar-left">
           <div class="view-switch" role="group" aria-label="Chế độ hiển thị PDF">
-            <button class="view-mode active" id="fileModeBtn" type="button" aria-pressed="true">▤ <span>Chế độ File</span></button>
-            <button class="view-mode" id="pageModeBtn" type="button" aria-pressed="false">▦ <span>Chế độ Trang</span></button>
+            <button class="view-mode active" id="fileModeBtn" type="button" aria-pressed="true">▤ <span>Theo File</span></button>
+            <button class="view-mode" id="pageModeBtn" type="button" aria-pressed="false">▦ <span>Theo Trang</span></button>
           </div>
-          <button class="tool-btn page-only-tool" id="selectAllBtn">☑ <span>Chọn tất cả</span></button>
-          <button class="tool-btn page-only-tool marquee-toggle-btn" id="marqueeSelectBtn" type="button" title="Chế độ quét chuột chọn nhiều trang (hoặc kéo chuột trên khoảng trống giữa các trang)">⬚ <span>Quét chọn</span></button>
+          <button class="tool-btn add-btn" id="addBtn">＋ <span>Thêm PDF</span></button>
+        </div>
+
+        <div class="toolbar-right">
+          <button class="tool-btn page-only-tool" id="selectAllBtn" type="button">☑ <span>Chọn tất cả</span></button>
+          <button class="tool-btn page-only-tool hidden" id="deselectAllBtn" type="button">☐ <span>Bỏ chọn</span></button>
           <div class="grid-zoom-group page-only-tool" role="group" aria-label="Thu phóng kích thước thẻ trang">
             <button class="tool-btn zoom-btn" id="gridZoomOutBtn" type="button" title="Thu nhỏ thẻ trang" aria-label="Thu nhỏ thẻ trang">🔍−</button>
             <button class="tool-btn zoom-btn" id="gridZoomInBtn" type="button" title="Phóng to thẻ trang" aria-label="Phóng to thẻ trang">🔍＋</button>
           </div>
+          <span class="toolbar-sep page-only-tool" aria-hidden="true"></span>
           <button class="tool-btn danger page-only-tool" id="deleteBtn" disabled>🗑 <span>Xóa đã chọn</span></button>
-          <button class="tool-btn page-only-tool" id="rotateLeftBtn" disabled title="Xoay trái">↶</button>
-          <button class="tool-btn page-only-tool" id="rotateRightBtn" disabled title="Xoay phải">↷</button>
-          </div>
+          <button class="tool-btn page-only-tool" id="rotateLeftBtn" disabled title="Xoay trái">↶ <span>Xoay trái</span></button>
+          <button class="tool-btn page-only-tool" id="rotateRightBtn" disabled title="Xoay phải">↷ <span>Xoay phải</span></button>
         </div>
       </div>
 
       <div class="dropzone" id="dropzone">
-        <div class="desk-stickers" aria-hidden="true"><i class="tape"></i><i class="paperclip"></i><i class="scribble"></i><i class="star">✦</i></div>
         <div class="marquee-box hidden" id="marqueeBox" aria-hidden="true"><span class="marquee-badge" id="marqueeBadge">0 trang</span></div>
         <div class="workspace-empty hidden" id="workspaceEmpty">
-          <div class="empty-paper-stack" aria-hidden="true"><i></i><i></i><i></i></div>
+          <div class="empty-icon-wrap" aria-hidden="true">
+            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+          </div>
           <b>Bàn làm việc đang trống</b>
-          <span>Thêm một tệp PDF để bắt đầu nhé!</span>
+          <span>Thêm một tệp PDF để bắt đầu sắp xếp nhé!</span>
         </div>
         <div class="compact-files" id="compactFiles" aria-live="polite"></div>
         <div class="page-grid hidden" id="pageGrid" aria-live="polite"></div>
-        <div class="inline-drop"><span class="drop-paper" aria-hidden="true">PDF</span><b>＋ Bàn làm việc còn chỗ nè!</b><span>Thả PDF vào đây hoặc bấm để thêm tài liệu khác</span></div>
+        <div class="inline-drop"><span class="inline-drop-plus">＋</span><b>Thêm tệp PDF khác</b><span>Kéo thả PDF vào đây hoặc bấm để chọn tệp</span></div>
       </div>
     </section>
   </main>
@@ -140,6 +129,6 @@
   <div class="loading hidden" id="loading"><div class="paper-loader" aria-hidden="true"><i></i><i></i><i></i></div><p id="loadingText">Đang xếp giấy thật ngay ngắn...</p><div class="progress-track" role="progressbar" aria-label="Tiến trình xử lý" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="progressBar"></span></div><b class="progress-value" id="progressValue">0%</b></div>
 
   <footer><span>BÉ LAN PDF EDITOR</span><span>Được xếp giấy cẩn thận bởi Bé Lan ✦</span><span>PDF của bạn luôn ở trên thiết bị.</span></footer>
-  <script src="app.js?v=24" charset="UTF-8"></script>
+  <script src="app.js?v=28" charset="UTF-8"></script>
 </body>
 </html>
