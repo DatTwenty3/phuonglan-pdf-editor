@@ -233,41 +233,346 @@ html,body,button,input,select,textarea{font-family:"Segoe UI",Arial,sans-serif!i
   box-shadow: 0 0 0 var(--navy);
 }
 
-/* Nút xoay trong modal xem trước */
-.preview-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 0 0 auto;
+/* Header và thanh công cụ trong Modal Xem trước */
+.preview-head {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+  padding: 12px 18px !important;
+  background: #fff !important;
+  border-bottom: 3px solid var(--navy) !important;
+  flex-wrap: nowrap !important;
 }
 
-.preview-tool-btn {
-  width: 38px;
-  height: 38px;
-  display: grid;
-  place-items: center;
-  padding: 0;
-  border: 3px solid var(--navy);
-  border-radius: 10px;
-  background: #fff;
-  color: var(--navy);
+.preview-title-wrap {
+  display: flex !important;
+  flex-direction: column !important;
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+}
+
+.preview-actions {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 10px !important;
+  flex: 0 0 auto !important;
+  flex-wrap: nowrap !important;
+}
+
+.preview-tools-group {
+  display: inline-flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex: 0 0 auto !important;
+}
+
+/* Khung pill Thu phóng */
+.preview-zoom-group {
+  display: inline-flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 2px !important;
+  background: #fffaf3 !important;
+  padding: 3px 5px !important;
+  border: 2.5px solid var(--navy) !important;
+  border-radius: 12px !important;
+  box-shadow: 2px 2px 0 var(--navy) !important;
+  flex: 0 0 auto !important;
+}
+
+/* Nút +, -, Fit trong zoom pill */
+.preview-zoom-group button.preview-zoom-btn {
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  max-width: 28px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 6px !important;
+  background: transparent !important;
+  color: var(--navy) !important;
   font-family: "Segoe UI", Arial, sans-serif !important;
-  font-size: 20px;
-  font-weight: 900;
-  line-height: 1;
-  cursor: pointer;
-  box-shadow: 3px 3px 0 var(--navy);
-  transition: transform .12s ease, background-color .12s ease, box-shadow .12s ease;
+  font-size: 16px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  box-shadow: none !important;
+  display: grid !important;
+  place-items: center !important;
+  cursor: pointer !important;
+  transition: background-color 0.12s, transform 0.12s !important;
+}
+
+.preview-zoom-group button.preview-zoom-btn:hover {
+  background: #f4cf73 !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.preview-zoom-group button.preview-zoom-btn:active {
+  transform: scale(0.92) !important;
+}
+
+/* Ô hiển thị phần trăm zoom */
+.preview-zoom-group button.preview-zoom-level {
+  width: auto !important;
+  min-width: 56px !important;
+  height: 28px !important;
+  padding: 0 6px !important;
+  border: 1.5px solid var(--navy) !important;
+  border-radius: 7px !important;
+  background: #fff !important;
+  color: var(--navy) !important;
+  font-family: "Segoe UI", Arial, sans-serif !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  letter-spacing: 0 !important;
+  box-shadow: 1px 1px 0 var(--navy) !important;
+  display: grid !important;
+  place-items: center !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  margin: 0 2px !important;
+  transition: background-color 0.12s !important;
+}
+
+.preview-zoom-group button.preview-zoom-level:hover {
+  background: #f4cf73 !important;
+}
+
+/* Nút xoay và đóng */
+.preview-tool-btn {
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  max-width: 36px !important;
+  display: grid !important;
+  place-items: center !important;
+  padding: 0 !important;
+  border: 2.5px solid var(--navy) !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+  color: var(--navy) !important;
+  font-family: "Segoe UI", Arial, sans-serif !important;
+  font-size: 18px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+  box-shadow: 2px 2px 0 var(--navy) !important;
+  transition: transform .12s ease, background-color .12s ease, box-shadow .12s ease !important;
+  flex: 0 0 auto !important;
 }
 
 .preview-tool-btn:hover {
-  background: #f4cf73;
-  transform: translate(1px, 1px);
-  box-shadow: 2px 2px 0 var(--navy);
+  background: #f4cf73 !important;
+  color: var(--navy) !important;
+  transform: translate(1px, 1px) !important;
+  box-shadow: 1px 1px 0 var(--navy) !important;
 }
 
 .preview-tool-btn:active {
-  transform: translate(3px, 3px);
-  box-shadow: 0 0 0 var(--navy);
+  transform: translate(2px, 2px) !important;
+  box-shadow: 0 0 0 var(--navy) !important;
 }
+
+/* Vùng hiển thị và kéo di chuyển canvas trong xem trước */
+.preview-stage {
+  position: relative;
+  overflow: hidden !important;
+  user-select: none;
+  touch-action: none;
+}
+
+.preview-canvas-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-origin: center center;
+  transition: transform 0.15s cubic-bezier(0.2, 0, 0, 1);
+  will-change: transform;
+  cursor: grab;
+}
+
+.preview-canvas-wrapper.is-panning {
+  cursor: grabbing !important;
+  transition: none !important;
+}
+
+.preview-canvas-wrapper canvas {
+  pointer-events: none;
+  max-width: none !important;
+  max-height: none !important;
+}
+
+/* Khung chữ nhật Quét chuột chọn nhiều trang (Marquee Selection) */
+.marquee-box {
+  position: absolute;
+  pointer-events: none;
+  z-index: 100;
+  border: 2px dashed var(--navy);
+  background: rgba(244, 207, 115, 0.32);
+  border-radius: 8px;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.8), 0 4px 16px rgba(74, 39, 31, 0.22);
+}
+
+.marquee-badge {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  padding: 4px 9px;
+  border: 2px solid var(--navy);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--navy);
+  font-family: "Segoe UI", Arial, sans-serif !important;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+  box-shadow: 2px 2px 0 var(--navy);
+  pointer-events: none;
+}
+
+.page-card.marquee-candidate {
+  outline: 3px solid #f4cf73 !important;
+  outline-offset: 2px;
+  filter: brightness(1.05);
+}
+
+.dropzone.marquee-mode-active {
+  cursor: crosshair !important;
+}
+
+.dropzone.marquee-mode-active .page-card,
+.dropzone.marquee-mode-active .page-preview,
+.dropzone.marquee-mode-active .page-meta {
+  cursor: crosshair !important;
+}
+
+.marquee-toggle-btn.active {
+  background: var(--navy) !important;
+  color: #fff !important;
+  box-shadow: 0 0 0 3px #f4cf73, 2px 2px 0 var(--navy) !important;
+}
+
+/* Vô hiệu hóa triệt để hành vi bôi đen văn bản và lớp phủ màu xanh mặc định của trình duyệt */
+.dropzone,
+.dropzone *,
+.page-grid,
+.page-grid *,
+.page-card,
+.page-card *,
+.page-preview,
+.page-preview img,
+.compact-files,
+.compact-file-card {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+}
+
+.page-preview img {
+  pointer-events: none !important;
+  -webkit-user-drag: none !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+/* Triệt tiêu lớp phủ màu xanh mặc định ::selection của trình duyệt khi quét chuột */
+.dropzone ::selection,
+.dropzone *::selection,
+.page-grid ::selection,
+.page-grid *::selection,
+.page-card ::selection,
+.page-card *::selection,
+.page-preview ::selection,
+.page-preview *::selection,
+.page-preview img::selection {
+  background: transparent !important;
+  color: inherit !important;
+}
+
+.dropzone ::-moz-selection,
+.dropzone *::-moz-selection,
+.page-grid ::-moz-selection,
+.page-grid *::-moz-selection,
+.page-card ::-moz-selection,
+.page-card *::-moz-selection,
+.page-preview ::-moz-selection,
+.page-preview *::-moz-selection,
+.page-preview img::-moz-selection {
+  background: transparent !important;
+  color: inherit !important;
+}
+
+/* Nút thu phóng kích thước thẻ trang (Grid Zoom) */
+.grid-zoom-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.grid-zoom-group .zoom-btn {
+  padding: 6px 9px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+:root {
+  --grid-card-size: 155px;
+}
+
+.page-card {
+  flex: 0 0 var(--grid-card-size, 155px) !important;
+  width: var(--grid-card-size, 155px) !important;
+}
+
+@media (max-width: 650px) {
+  .page-card {
+    flex-basis: calc(50% - 20px) !important;
+    width: auto !important;
+  }
+  .preview-head {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+    padding: 10px 12px !important;
+  }
+  .preview-actions {
+    width: 100% !important;
+    justify-content: space-between !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    gap: 6px !important;
+  }
+  .preview-zoom-group {
+    padding: 2px 4px !important;
+    gap: 1px !important;
+  }
+  .preview-zoom-group button.preview-zoom-btn {
+    width: 26px !important;
+    height: 26px !important;
+    min-width: 26px !important;
+    font-size: 15px !important;
+  }
+  .preview-zoom-group button.preview-zoom-level {
+    min-width: 48px !important;
+    height: 26px !important;
+    font-size: 11px !important;
+    padding: 0 4px !important;
+  }
+  .preview-tool-btn {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    font-size: 16px !important;
+  }
+}
+
 

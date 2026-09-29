@@ -6,8 +6,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="BÉ LAN PDF EDITOR - Sắp xếp, xóa trang và gộp PDF ngay trên trình duyệt.">
   <title>BÉ LAN PDF EDITOR</title>
-  <link rel="stylesheet" href="styles.css?v=12">
-  <link rel="stylesheet" href="layout-fixes.css?v=25">
+  <link rel="stylesheet" href="styles.css?v=13">
+  <link rel="stylesheet" href="layout-fixes.css?v=28">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
@@ -77,6 +77,11 @@
             <button class="view-mode" id="pageModeBtn" type="button" aria-pressed="false">▦ <span>Chế độ Trang</span></button>
           </div>
           <button class="tool-btn page-only-tool" id="selectAllBtn">☑ <span>Chọn tất cả</span></button>
+          <button class="tool-btn page-only-tool marquee-toggle-btn" id="marqueeSelectBtn" type="button" title="Chế độ quét chuột chọn nhiều trang (hoặc kéo chuột trên khoảng trống giữa các trang)">⬚ <span>Quét chọn</span></button>
+          <div class="grid-zoom-group page-only-tool" role="group" aria-label="Thu phóng kích thước thẻ trang">
+            <button class="tool-btn zoom-btn" id="gridZoomOutBtn" type="button" title="Thu nhỏ thẻ trang" aria-label="Thu nhỏ thẻ trang">🔍−</button>
+            <button class="tool-btn zoom-btn" id="gridZoomInBtn" type="button" title="Phóng to thẻ trang" aria-label="Phóng to thẻ trang">🔍＋</button>
+          </div>
           <button class="tool-btn danger page-only-tool" id="deleteBtn" disabled>🗑 <span>Xóa đã chọn</span></button>
           <button class="tool-btn page-only-tool" id="rotateLeftBtn" disabled title="Xoay trái">↶</button>
           <button class="tool-btn page-only-tool" id="rotateRightBtn" disabled title="Xoay phải">↷</button>
@@ -86,6 +91,7 @@
 
       <div class="dropzone" id="dropzone">
         <div class="desk-stickers" aria-hidden="true"><i class="tape"></i><i class="paperclip"></i><i class="scribble"></i><i class="star">✦</i></div>
+        <div class="marquee-box hidden" id="marqueeBox" aria-hidden="true"><span class="marquee-badge" id="marqueeBadge">0 trang</span></div>
         <div class="workspace-empty hidden" id="workspaceEmpty">
           <div class="empty-paper-stack" aria-hidden="true"><i></i><i></i><i></i></div>
           <b>Bàn làm việc đang trống</b>
@@ -102,18 +108,31 @@
   <div class="preview-modal hidden" id="previewModal" role="dialog" aria-modal="true" aria-labelledby="previewTitle">
     <div class="preview-panel">
       <div class="preview-head">
-        <div><b id="previewTitle">Xem trước trang</b><span id="previewFileName"></span></div>
+        <div class="preview-title-wrap">
+          <b id="previewTitle">Xem trước trang</b>
+          <span id="previewFileName"></span>
+        </div>
         <div class="preview-actions">
-          <button class="preview-tool-btn" id="previewRotateLeftBtn" type="button" aria-label="Xoay trái" title="Xoay trái 90°">↶</button>
-          <button class="preview-tool-btn" id="previewRotateRightBtn" type="button" aria-label="Xoay phải" title="Xoay phải 90°">↷</button>
-          <button id="closePreviewBtn" aria-label="Đóng xem trước" title="Đóng">×</button>
+          <div class="preview-zoom-group" role="group" aria-label="Thu phóng xem trước">
+            <button class="preview-zoom-btn" id="previewZoomOutBtn" type="button" aria-label="Thu nhỏ" title="Thu nhỏ (−)">−</button>
+            <button class="preview-zoom-level" id="previewZoomLevelBtn" type="button" aria-label="Đặt lại 100%" title="Nhấn để đặt lại 100%">100%</button>
+            <button class="preview-zoom-btn" id="previewZoomInBtn" type="button" aria-label="Phóng to" title="Phóng to (＋)">＋</button>
+            <button class="preview-zoom-btn" id="previewZoomFitBtn" type="button" aria-label="Vừa màn hình" title="Vừa màn hình">⤢</button>
+          </div>
+          <div class="preview-tools-group" role="group" aria-label="Thao tác trang">
+            <button class="preview-tool-btn" id="previewRotateLeftBtn" type="button" aria-label="Xoay trái" title="Xoay trái 90°">↶</button>
+            <button class="preview-tool-btn" id="previewRotateRightBtn" type="button" aria-label="Xoay phải" title="Xoay phải 90°">↷</button>
+            <button class="preview-tool-btn preview-close-btn" id="closePreviewBtn" type="button" aria-label="Đóng xem trước" title="Đóng">×</button>
+          </div>
         </div>
       </div>
-      <div class="preview-stage" id="previewStage">
+      <div class="preview-stage" id="previewStage" tabindex="0" aria-label="Vùng xem trước PDF. Cuộn chuột hoặc nút bấm để thu phóng, kéo chuột để di chuyển">
         <div class="preview-spinner" id="previewSpinner"></div>
-        <canvas id="previewCanvas"></canvas>
+        <div class="preview-canvas-wrapper" id="previewCanvasWrapper">
+          <canvas id="previewCanvas"></canvas>
+        </div>
       </div>
-      <p class="preview-tip">Nhấn ra ngoài hoặc phím Esc để đóng</p>
+      <p class="preview-tip">Cuộn chuột hoặc nút −/＋ để thu phóng • Kéo để di chuyển khi phóng to • Esc để đóng</p>
     </div>
   </div>
   <div class="confetti" id="confetti" aria-hidden="true"></div>
@@ -121,6 +140,6 @@
   <div class="loading hidden" id="loading"><div class="paper-loader" aria-hidden="true"><i></i><i></i><i></i></div><p id="loadingText">Đang xếp giấy thật ngay ngắn...</p><div class="progress-track" role="progressbar" aria-label="Tiến trình xử lý" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="progressBar"></span></div><b class="progress-value" id="progressValue">0%</b></div>
 
   <footer><span>BÉ LAN PDF EDITOR</span><span>Được xếp giấy cẩn thận bởi Bé Lan ✦</span><span>PDF của bạn luôn ở trên thiết bị.</span></footer>
-  <script src="app.js?v=21" charset="UTF-8"></script>
+  <script src="app.js?v=24" charset="UTF-8"></script>
 </body>
 </html>

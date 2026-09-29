@@ -6,7 +6,7 @@ const filePalette = [
   ['#694273', '#c8a8cf'], ['#387044', '#a8cfaf'], ['#9a4d22', '#e2b18f'],
   ['#3e4f83', '#aeb9df'], ['#8a3b58', '#dfadc0']
 ];
-const els = Object.fromEntries(['emptyState','workspace','workspaceEmpty','fileInput','pageGrid','compactFiles','fileModeBtn','pageModeBtn','summary','deleteBtn','selectAllBtn','rotateLeftBtn','rotateRightBtn','dropzone','loading','loadingText','progressBar','progressValue','toast','confetti','mascotMessage'].map(id => [id, document.getElementById(id)]));
+const els = Object.fromEntries(['emptyState','workspace','workspaceEmpty','fileInput','pageGrid','compactFiles','fileModeBtn','pageModeBtn','summary','deleteBtn','selectAllBtn','rotateLeftBtn','rotateRightBtn','dropzone','loading','loadingText','progressBar','progressValue','toast','confetti','mascotMessage','marqueeSelectBtn','marqueeBox','marqueeBadge','gridZoomOutBtn','gridZoomInBtn','previewZoomOutBtn','previewZoomLevelBtn','previewZoomInBtn','previewZoomFitBtn','previewCanvasWrapper','previewStage'].map(id => [id, document.getElementById(id)]));
 
 const setProgress = value => {
   const percent = Math.max(0, Math.min(100, Math.round(value)));
@@ -103,7 +103,7 @@ async function renderMissingThumbnails(onProgress) {
         const transformStyle = isRotated
           ? `transform:rotate(${item.rotation}deg)${item.rotation % 180 !== 0 ? ' scale(0.72)' : ''};`
           : '';
-        target.innerHTML = `<img src="${item.thumb}" alt="Xem trước trang" style="max-width:100%;max-height:100%;${transformStyle}">`;
+        target.innerHTML = `<img src="${item.thumb}" alt="Xem trước trang" draggable="false" style="max-width:100%;max-height:100%;${transformStyle}">`;
       }
       completed++;
       if (onProgress) onProgress(completed, total);
@@ -133,7 +133,7 @@ function render() {
   const insertButton = index => `<button class="insert-point" type="button" data-insert-at="${index}" aria-label="Thêm PDF vào vị trí này" title="Thêm PDF vào đây">＋</button>`;
   els.compactFiles.innerHTML = fileGroups.map(group => `
     <article class="compact-file-card" data-segment-pages="${group.pages.map(page => page.id).join(',')}">
-      <div class="compact-cover">${group.pages[0].thumb ? `<img src="${group.pages[0].thumb}" alt="Trang đầu của ${escapeHtml(group.fileName)}">` : 'PDF'}</div>
+      <div class="compact-cover">${group.pages[0].thumb ? `<img src="${group.pages[0].thumb}" alt="Trang đầu của ${escapeHtml(group.fileName)}" draggable="false">` : 'PDF'}</div>
       <div class="compact-file-info">
         <b title="${escapeHtml(group.fileName)}">${escapeHtml(group.fileName)}</b>
         <span>${group.pages.length} trang PDF${group.segmentTotal > 1 ? ` • Phần ${group.segmentPosition}/${group.segmentTotal}` : ''}</span>
@@ -152,7 +152,7 @@ function render() {
     <article class="page-card file-colored ${page.selected ? 'selected' : ''}" data-id="${page.id}" style="--file-color:${filePalette[page.fileColor ?? 0][0]};--file-soft:${filePalette[page.fileColor ?? 0][1]}">
       <input class="page-check" type="checkbox" ${page.selected ? 'checked' : ''} aria-label="Chọn trang ${index + 1}">
       <button class="remove-one" type="button" aria-label="Xóa trang ${index + 1}" title="Xóa riêng trang ${index + 1}">×</button>
-      <div class="page-preview">${page.thumb ? `<img src="${page.thumb}" alt="Xem trước trang ${index + 1}" style="max-width:100%;max-height:100%;${transformStyle}">` : 'Đang tải...'}</div>
+      <div class="page-preview">${page.thumb ? `<img src="${page.thumb}" alt="Xem trước trang ${index + 1}" draggable="false" style="max-width:100%;max-height:100%;${transformStyle}">` : 'Đang tải...'}</div>
       <div class="page-meta">
         <div class="page-meta-row">
           <span class="page-number" title="Trang ${index + 1}${rotationHint}">Trang ${index + 1}</span>
@@ -254,7 +254,18 @@ els.pageGrid.addEventListener('click', event => {
 
   if (event.target.closest('.page-check, .insert-point')) return;
   const card = event.target.closest('.page-card');
-  if (card) openPreview(+card.dataset.id);
+  if (card) {
+    if (justFinishedMarquee) return;
+    if (isMarqueeModeActive) {
+      const page = state.pages.find(p => p.id === +card.dataset.id);
+      if (page) {
+        page.selected = !page.selected;
+        render();
+      }
+      return;
+    }
+    openPreview(+card.dataset.id);
+  }
 });
 document.getElementById('deleteBtn').onclick = () => { const ids = selected().map(p => p.id); if (ids.length) removePages(ids); };
 document.getElementById('selectAllBtn').onclick = () => { const value = selected().length !== state.pages.length; state.pages.forEach(p => p.selected = value); render(); };
@@ -277,15 +288,19 @@ function chooseInsertPosition(index) { state.insertAt = index; els.fileInput.cli
 document.querySelector('.inline-drop').onclick = () => { state.insertAt = null; els.fileInput.click(); };
 els.fileInput.onchange = event => { addFiles(event.target.files); event.target.value = ''; };
 
+/* ==========================================================
+   BỘ SẮP XẾP KÉO THẢ (SORTABLEJS)
+   ========================================================== */
 let multiPageDrag = null;
-new Sortable(els.pageGrid, {
+const pageGridSortable = new Sortable(els.pageGrid, {
   draggable: '.page-card',
-  filter: 'button, input, .insert-point',
+  filter: 'button, input, .insert-point, .page-rotate-btn',
   preventOnFilter: false,
   animation: 180,
   delay: 80,
   delayOnTouchOnly: true,
   onStart: event => {
+    if (isMarqueeModeActive) return false;
     event.item.classList.add('is-lifted');
     const draggedId = +event.item.dataset.id;
     const draggedPage = state.pages.find(page => page.id === draggedId);
@@ -341,11 +356,370 @@ new Sortable(els.compactFiles, {
 ['dragenter','dragover'].forEach(name => document.addEventListener(name, event => { event.preventDefault(); els.dropzone.classList.add('dragover'); }));
 ['dragleave','drop'].forEach(name => document.addEventListener(name, event => { event.preventDefault(); if (name === 'drop') { state.insertAt = null; addFiles(event.dataTransfer.files); } els.dropzone.classList.remove('dragover'); }));
 
+/* ==========================================================
+   BỘ ĐIỀU CHỈNH KÍCH THƯỚC TRANG TRÊN LƯỚI (GRID ZOOM)
+   ========================================================== */
+let currentGridCardSize = 155;
+const MIN_GRID_SIZE = 120;
+const MAX_GRID_SIZE = 260;
+const GRID_STEP = 30;
+
+function setGridCardSize(size) {
+  currentGridCardSize = Math.max(MIN_GRID_SIZE, Math.min(MAX_GRID_SIZE, size));
+  document.documentElement.style.setProperty('--grid-card-size', `${currentGridCardSize}px`);
+  if (els.gridZoomOutBtn) els.gridZoomOutBtn.disabled = currentGridCardSize <= MIN_GRID_SIZE;
+  if (els.gridZoomInBtn) els.gridZoomInBtn.disabled = currentGridCardSize >= MAX_GRID_SIZE;
+}
+
+if (els.gridZoomOutBtn) {
+  els.gridZoomOutBtn.onclick = () => {
+    setGridCardSize(currentGridCardSize - GRID_STEP);
+    toast(`Kích thước xem trước: ${currentGridCardSize}px`);
+  };
+}
+if (els.gridZoomInBtn) {
+  els.gridZoomInBtn.onclick = () => {
+    setGridCardSize(currentGridCardSize + GRID_STEP);
+    toast(`Kích thước xem trước: ${currentGridCardSize}px`);
+  };
+}
+
+/* ==========================================================
+   BỘ MÁY QUÉT CHUỘT CHỌN NHIỀU TRANG 1 LƯỢT (MARQUEE SELECTION)
+   ========================================================== */
+let isMarqueeModeActive = false;
+let isMarqueeTracking = false;
+let isMarqueeDragging = false;
+let marqueeStartX = 0;
+let marqueeStartY = 0;
+let startEventShift = false;
+let startEventCtrl = false;
+let justFinishedMarquee = false;
+const candidateIds = new Set();
+
+if (els.marqueeSelectBtn) {
+  els.marqueeSelectBtn.onclick = () => {
+    isMarqueeModeActive = !isMarqueeModeActive;
+    els.marqueeSelectBtn.classList.toggle('active', isMarqueeModeActive);
+    els.dropzone.classList.toggle('marquee-mode-active', isMarqueeModeActive);
+    pageGridSortable.option('disabled', isMarqueeModeActive);
+    if (isMarqueeModeActive) {
+      toast('Đã bật Quét chọn: Kéo chuột để quét chọn nhiều trang.');
+    } else {
+      toast('Đã tắt Quét chọn: Chế độ sắp xếp kéo thả đã sẵn sàng.');
+    }
+  };
+}
+
+els.dropzone.addEventListener('pointerdown', event => {
+  if (state.compact) return;
+  if (event.button !== 0) return;
+  if (event.target.closest('button, input, .insert-point, .compact-files')) return;
+
+  const card = event.target.closest('.page-card');
+  const isShift = event.shiftKey;
+  const isCtrl = event.ctrlKey || event.metaKey;
+
+  // Nếu nhấp vào card mà không bật marqueeMode hoặc Shift/Ctrl, nhường cho Sortable / Click mở preview
+  if (card && !isMarqueeModeActive && !isShift && !isCtrl) {
+    return;
+  }
+
+  // Xóa sạch vùng bôi đen chữ của trình duyệt nếu có
+  if (window.getSelection) {
+    window.getSelection().removeAllRanges();
+  }
+
+  isMarqueeTracking = true;
+  isMarqueeDragging = false;
+  marqueeStartX = event.clientX;
+  marqueeStartY = event.clientY;
+  startEventShift = isShift;
+  startEventCtrl = isCtrl;
+  candidateIds.clear();
+
+  // Ngăn chặn hoàn toàn hành vi bôi đen văn bản/hình ảnh mặc định của trình duyệt
+  event.preventDefault();
+});
+
+document.addEventListener('pointermove', event => {
+  if (!isMarqueeTracking) return;
+
+  // Luôn ngăn chặn hành vi bôi đen mặc định của trình duyệt khi đang quét
+  event.preventDefault();
+  if (window.getSelection) {
+    window.getSelection().removeAllRanges();
+  }
+
+  const currentX = event.clientX;
+  const currentY = event.clientY;
+  const dist = Math.hypot(currentX - marqueeStartX, currentY - marqueeStartY);
+
+  if (!isMarqueeDragging && dist > 5) {
+    isMarqueeDragging = true;
+    els.dropzone.classList.add('is-marquee-selecting');
+    if (els.marqueeBox) els.marqueeBox.classList.remove('hidden');
+  }
+
+  if (isMarqueeDragging && els.marqueeBox) {
+    const dropzoneRect = els.dropzone.getBoundingClientRect();
+    const left = Math.min(marqueeStartX, currentX) - dropzoneRect.left + els.dropzone.scrollLeft;
+    const top = Math.min(marqueeStartY, currentY) - dropzoneRect.top + els.dropzone.scrollTop;
+    const width = Math.abs(currentX - marqueeStartX);
+    const height = Math.abs(currentY - marqueeStartY);
+
+    els.marqueeBox.style.left = `${left}px`;
+    els.marqueeBox.style.top = `${top}px`;
+    els.marqueeBox.style.width = `${width}px`;
+    els.marqueeBox.style.height = `${height}px`;
+
+    // Thuật toán va chạm AABB tính theo khung nhìn viewport
+    const boxRect = els.marqueeBox.getBoundingClientRect();
+    const cards = els.pageGrid.querySelectorAll('.page-card');
+    candidateIds.clear();
+
+    cards.forEach(card => {
+      const cardRect = card.getBoundingClientRect();
+      const isIntersecting = !(
+        boxRect.right < cardRect.left ||
+        boxRect.left > cardRect.right ||
+        boxRect.bottom < cardRect.top ||
+        boxRect.top > cardRect.bottom
+      );
+
+      if (isIntersecting) {
+        card.classList.add('marquee-candidate');
+        candidateIds.add(+card.dataset.id);
+      } else {
+        card.classList.remove('marquee-candidate');
+      }
+    });
+
+    if (els.marqueeBadge) {
+      els.marqueeBadge.textContent = `${candidateIds.size} trang`;
+    }
+  }
+});
+
+const finishMarqueeDrag = () => {
+  if (!isMarqueeTracking) return;
+  isMarqueeTracking = false;
+
+  if (window.getSelection) {
+    window.getSelection().removeAllRanges();
+  }
+
+  if (isMarqueeDragging) {
+    isMarqueeDragging = false;
+    justFinishedMarquee = true;
+    setTimeout(() => { justFinishedMarquee = false; }, 220);
+
+    // Cập nhật trạng thái lựa chọn
+    if (startEventCtrl) {
+      state.pages.forEach(p => {
+        if (candidateIds.has(p.id)) p.selected = !p.selected;
+      });
+    } else if (startEventShift) {
+      state.pages.forEach(p => {
+        if (candidateIds.has(p.id)) p.selected = true;
+      });
+    } else {
+      state.pages.forEach(p => {
+        p.selected = candidateIds.has(p.id);
+      });
+    }
+
+    els.pageGrid.querySelectorAll('.page-card.marquee-candidate').forEach(c => c.classList.remove('marquee-candidate'));
+    if (els.marqueeBox) els.marqueeBox.classList.add('hidden');
+    els.dropzone.classList.remove('is-marquee-selecting');
+
+    render();
+    const count = selected().length;
+    if (count > 0) {
+      toast(`Đã chọn ${count} trang.`);
+    }
+  } else {
+    if (els.marqueeBox) els.marqueeBox.classList.add('hidden');
+    els.dropzone.classList.remove('is-marquee-selecting');
+  }
+};
+
+document.addEventListener('pointerup', finishMarqueeDrag);
+document.addEventListener('pointercancel', finishMarqueeDrag);
+
+// Vô hiệu hóa hành vi bôi đen văn bản và kéo ảnh của trình duyệt trên khu vực dropzone
+document.addEventListener('selectstart', event => {
+  if (isMarqueeTracking || isMarqueeDragging || isMarqueeModeActive || event.target.closest('#dropzone')) {
+    event.preventDefault();
+  }
+});
+
+document.addEventListener('dragstart', event => {
+  if (event.target.closest('.page-preview, .page-preview img, .page-card, #dropzone')) {
+    event.preventDefault();
+  }
+});
+
+/* ==========================================================
+   CỬA SỔ XEM TRƯỚC (PREVIEW MODAL) VỚI THU PHÓNG & KÉO DI CHUYỂN
+   ========================================================== */
 const previewModal = document.getElementById('previewModal');
 const previewCanvas = document.getElementById('previewCanvas');
 const previewSpinner = document.getElementById('previewSpinner');
+const previewCanvasWrapper = document.getElementById('previewCanvasWrapper');
+const previewStage = document.getElementById('previewStage');
+const previewZoomOutBtn = document.getElementById('previewZoomOutBtn');
+const previewZoomLevelBtn = document.getElementById('previewZoomLevelBtn');
+const previewZoomInBtn = document.getElementById('previewZoomInBtn');
+const previewZoomFitBtn = document.getElementById('previewZoomFitBtn');
 
 let currentPreviewId = null;
+let previewZoom = 1.0;
+let previewPanX = 0;
+let previewPanY = 0;
+let isPreviewPanning = false;
+let panStartX = 0;
+let panStartY = 0;
+
+const MIN_PREVIEW_ZOOM = 0.5;
+const MAX_PREVIEW_ZOOM = 3.5;
+const PREVIEW_ZOOM_STEP = 0.25;
+
+function applyPreviewTransform(withTransition = true) {
+  if (!previewCanvasWrapper) return;
+  if (withTransition) {
+    previewCanvasWrapper.classList.remove('no-transition');
+  } else {
+    previewCanvasWrapper.classList.add('no-transition');
+  }
+  previewCanvasWrapper.style.transform = `translate(${previewPanX}px, ${previewPanY}px) scale(${previewZoom})`;
+  if (previewZoomLevelBtn) {
+    previewZoomLevelBtn.textContent = `${Math.round(previewZoom * 100)}%`;
+  }
+  if (previewCanvasWrapper) {
+    previewCanvasWrapper.style.cursor = previewZoom > 1.05 ? 'grab' : 'zoom-in';
+  }
+}
+
+function setPreviewZoom(newZoom, mouseX = 0, mouseY = 0, relativeToMouse = false) {
+  const oldZoom = previewZoom;
+  const clampedZoom = Math.max(MIN_PREVIEW_ZOOM, Math.min(MAX_PREVIEW_ZOOM, Math.round(newZoom * 100) / 100));
+  if (clampedZoom === oldZoom) return;
+
+  if (relativeToMouse && oldZoom > 0) {
+    const ratio = clampedZoom / oldZoom;
+    previewPanX = mouseX - (mouseX - previewPanX) * ratio;
+    previewPanY = mouseY - (mouseY - previewPanY) * ratio;
+  } else if (clampedZoom <= 1.0) {
+    previewPanX = 0;
+    previewPanY = 0;
+  }
+
+  previewZoom = clampedZoom;
+  applyPreviewTransform(true);
+}
+
+function zoomInPreview() {
+  setPreviewZoom(previewZoom + PREVIEW_ZOOM_STEP);
+}
+
+function zoomOutPreview() {
+  setPreviewZoom(previewZoom - PREVIEW_ZOOM_STEP);
+}
+
+function resetPreviewZoom() {
+  previewZoom = 1.0;
+  previewPanX = 0;
+  previewPanY = 0;
+  applyPreviewTransform(true);
+}
+
+function fitPreview() {
+  if (!previewStage || !previewCanvas) {
+    resetPreviewZoom();
+    return;
+  }
+  const stageRect = previewStage.getBoundingClientRect();
+  const padding = 36;
+  const availW = Math.max(100, stageRect.width - padding);
+  const availH = Math.max(100, stageRect.height - padding);
+  const curW = previewCanvas.offsetWidth || parseInt(previewCanvas.style.width, 10) || 500;
+  const curH = previewCanvas.offsetHeight || parseInt(previewCanvas.style.height, 10) || 700;
+  const scaleW = availW / curW;
+  const scaleH = availH / curH;
+  const fitScale = Math.min(scaleW, scaleH);
+  previewZoom = Math.max(MIN_PREVIEW_ZOOM, Math.min(MAX_PREVIEW_ZOOM, Math.round(fitScale * 100) / 100));
+  previewPanX = 0;
+  previewPanY = 0;
+  applyPreviewTransform(true);
+}
+
+if (previewZoomInBtn) previewZoomInBtn.onclick = zoomInPreview;
+if (previewZoomOutBtn) previewZoomOutBtn.onclick = zoomOutPreview;
+if (previewZoomLevelBtn) previewZoomLevelBtn.onclick = resetPreviewZoom;
+if (previewZoomFitBtn) previewZoomFitBtn.onclick = fitPreview;
+
+// Kéo di chuyển khi phóng to (Pan Dragging)
+if (previewStage) {
+  previewStage.addEventListener('pointerdown', event => {
+    if (event.button !== 0) return;
+    if (event.target.closest('button')) return;
+
+    isPreviewPanning = true;
+    panStartX = event.clientX - previewPanX;
+    panStartY = event.clientY - previewPanY;
+    if (previewCanvasWrapper) {
+      previewCanvasWrapper.classList.add('is-panning');
+    }
+    previewStage.setPointerCapture?.(event.pointerId);
+  });
+
+  previewStage.addEventListener('pointermove', event => {
+    if (!isPreviewPanning) return;
+    const newX = event.clientX - panStartX;
+    const newY = event.clientY - panStartY;
+    const maxPan = Math.max(200, Math.max(window.innerWidth, window.innerHeight) * 0.9);
+    previewPanX = Math.max(-maxPan, Math.min(maxPan, newX));
+    previewPanY = Math.max(-maxPan, Math.min(maxPan, newY));
+    applyPreviewTransform(false);
+  });
+
+  const stopPreviewPan = event => {
+    if (!isPreviewPanning) return;
+    isPreviewPanning = false;
+    if (previewCanvasWrapper) {
+      previewCanvasWrapper.classList.remove('is-panning');
+    }
+    if (event.pointerId && previewStage.hasPointerCapture?.(event.pointerId)) {
+      previewStage.releasePointerCapture(event.pointerId);
+    }
+  };
+  previewStage.addEventListener('pointerup', stopPreviewPan);
+  previewStage.addEventListener('pointercancel', stopPreviewPan);
+
+  // Cuộn chuột để phóng to thu nhỏ tại vị trí con trỏ
+  previewStage.addEventListener('wheel', event => {
+    event.preventDefault();
+    const rect = previewStage.getBoundingClientRect();
+    const mouseX = event.clientX - (rect.left + rect.width / 2);
+    const mouseY = event.clientY - (rect.top + rect.height / 2);
+    const delta = event.deltaY < 0 ? PREVIEW_ZOOM_STEP : -PREVIEW_ZOOM_STEP;
+    setPreviewZoom(previewZoom + delta, mouseX, mouseY, true);
+  }, { passive: false });
+
+  // Nhấp đúp để phóng to nhanh hoặc đặt lại
+  previewStage.addEventListener('dblclick', event => {
+    if (event.target.closest('button')) return;
+    if (previewZoom > 1.1) {
+      resetPreviewZoom();
+    } else {
+      const rect = previewStage.getBoundingClientRect();
+      const mouseX = event.clientX - (rect.left + rect.width / 2);
+      const mouseY = event.clientY - (rect.top + rect.height / 2);
+      setPreviewZoom(1.75, mouseX, mouseY, true);
+    }
+  });
+}
 
 async function renderPreviewCanvas(item) {
   previewCanvas.classList.remove('ready');
@@ -354,10 +728,22 @@ async function renderPreviewCanvas(item) {
     const pdf = await pdfjsLib.getDocument({ data: item.sourceBytes.slice() }).promise;
     const pdfPage = await pdf.getPage(item.sourcePage + 1);
     const baseRotation = pdfPage.rotate || 0;
-    const viewport = pdfPage.getViewport({ scale: 1.7, rotation: (baseRotation + item.rotation) % 360 });
+    // Render độ nét cao để khi zoom không bị vỡ hạt
+    const renderScale = Math.max(2.0, Math.min(2.8, (window.devicePixelRatio || 1) * 1.5));
+    const viewport = pdfPage.getViewport({ scale: renderScale, rotation: (baseRotation + item.rotation) % 360 });
     const context = previewCanvas.getContext('2d');
     previewCanvas.width = viewport.width;
     previewCanvas.height = viewport.height;
+
+    // Kích thước hiển thị vừa vặn trong stage tại zoom = 1.0
+    const stageWidth = (previewStage && previewStage.clientWidth > 100) ? previewStage.clientWidth - 48 : 800;
+    const stageHeight = (previewStage && previewStage.clientHeight > 100) ? previewStage.clientHeight - 48 : 600;
+    const fitScale = Math.max(0.1, Math.min(stageWidth / viewport.width, stageHeight / viewport.height, 1));
+    const displayWidth = Math.round(viewport.width * fitScale);
+    const displayHeight = Math.round(viewport.height * fitScale);
+    previewCanvas.style.width = `${displayWidth}px`;
+    previewCanvas.style.height = `${displayHeight}px`;
+
     await pdfPage.render({ canvasContext: context, viewport }).promise;
     previewSpinner.classList.add('hidden');
     requestAnimationFrame(() => previewCanvas.classList.add('ready'));
@@ -372,6 +758,11 @@ async function openPreview(id) {
   const item = state.pages.find(page => page.id === id);
   if (!item) return;
   currentPreviewId = id;
+  previewZoom = 1.0;
+  previewPanX = 0;
+  previewPanY = 0;
+  applyPreviewTransform(false);
+
   const rotationText = item.rotation ? ` (đã xoay ${item.rotation}°)` : '';
   document.getElementById('previewTitle').textContent = `Xem trước trang ${state.pages.indexOf(item) + 1}${rotationText}`;
   document.getElementById('previewFileName').textContent = item.fileName;
@@ -383,9 +774,13 @@ async function openPreview(id) {
 
 function closePreview() {
   currentPreviewId = null;
+  isPreviewPanning = false;
   previewModal.classList.remove('open');
   document.body.style.overflow = '';
-  setTimeout(() => previewModal.classList.add('hidden'), 240);
+  setTimeout(() => {
+    previewModal.classList.add('hidden');
+    resetPreviewZoom();
+  }, 240);
 }
 
 const previewRotateLeftBtn = document.getElementById('previewRotateLeftBtn');
@@ -400,6 +795,7 @@ if (previewRotateLeftBtn) {
       const rotationText = item.rotation ? ` (đã xoay ${item.rotation}°)` : '';
       document.getElementById('previewTitle').textContent = `Xem trước trang ${state.pages.indexOf(item) + 1}${rotationText}`;
       await renderPreviewCanvas(item);
+      applyPreviewTransform(false);
     }
   };
 }
@@ -413,13 +809,28 @@ if (previewRotateRightBtn) {
       const rotationText = item.rotation ? ` (đã xoay ${item.rotation}°)` : '';
       document.getElementById('previewTitle').textContent = `Xem trước trang ${state.pages.indexOf(item) + 1}${rotationText}`;
       await renderPreviewCanvas(item);
+      applyPreviewTransform(false);
     }
   };
 }
 
 document.getElementById('closePreviewBtn').onclick = closePreview;
 previewModal.addEventListener('click', event => { if (event.target === previewModal) closePreview(); });
-document.addEventListener('keydown', event => { if (event.key === 'Escape' && previewModal.classList.contains('open')) closePreview(); });
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape') {
+    if (previewModal.classList.contains('open')) {
+      closePreview();
+      return;
+    }
+    if (isMarqueeModeActive) {
+      isMarqueeModeActive = false;
+      if (els.marqueeSelectBtn) els.marqueeSelectBtn.classList.remove('active');
+      if (els.dropzone) els.dropzone.classList.remove('marquee-mode-active');
+      pageGridSortable.option('disabled', false);
+      toast('Đã thoát chế độ Quét chọn.');
+    }
+  }
+});
 
 document.getElementById('downloadBtn').onclick = async () => {
   if (!state.pages.length) return;
