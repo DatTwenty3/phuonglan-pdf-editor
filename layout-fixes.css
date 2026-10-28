@@ -666,3 +666,19 @@
     font-size: 15px !important;
   }
 }
+
+/* ==========================================================================
+   Sticky Toolbar: giữ thanh công cụ luôn hiện dưới topbar khi cuộn trang
+   ========================================================================== */
+.toolbar {
+  position: sticky;
+  top: 72px; /* topbar 64px + khoảng hở 8px */
+  z-index: 110;
+}
+
+/* Mobile: thanh công cụ xếp dọc khá cao nên không dính để tránh che nội dung */
+@media (max-width: 768px) {
+  .toolbar {
+    position: static;
+  }
+}
